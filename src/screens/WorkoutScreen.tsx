@@ -1,0 +1,88 @@
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
+
+import { AppButton } from '../components/AppButton';
+import { Card } from '../components/Card';
+import { Chip } from '../components/Chip';
+import { ExerciseCard } from '../components/ExerciseCard';
+import { colors } from '../constants/theme';
+import { WORKOUT_PLAN } from '../constants/workouts';
+import { useWorkout } from '../hooks/useWorkout';
+import { useWorkoutStore } from '../store/workout';
+import { Level, WorkoutMode } from '../types';
+
+const tabs = ['Today', 'Weekly Plan', 'History'] as const;
+const levels: Level[] = ['Beginner', 'Intermediate', 'Advanced'];
+const modes: WorkoutMode[] = ['Home', 'Gym'];
+
+export function WorkoutScreen() {
+  const [tab, setTab] = useState<(typeof tabs)[number]>('Today');
+  const workout = useWorkout();
+  const { setLevel, setMode, toggleExercise, completeWorkout, logs } = useWorkoutStore();
+
+  const complete = async () => {
+    await completeWorkout();
+    Toast.show({ type: 'success', text1: 'Workout saved' });
+  };
+
+  return (
+    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Workout</Text>
+      <View style={styles.tabs}>{tabs.map((item) => <Chip key={item} label={item} active={tab === item} onPress={() => setTab(item)} />)}</View>
+
+      {tab === 'Today' ? (
+        <>
+          <View style={styles.tabs}>{levels.map((item) => <Chip key={item} label={item} active={workout.level === item} onPress={() => setLevel(item)} />)}</View>
+          <View style={styles.tabs}>{modes.map((item) => <Chip key={item} label={item} active={workout.mode === item} onPress={() => setMode(item)} />)}</View>
+          <Text style={styles.muted}>{workout.done}/{workout.total} exercises checked. Timer starts on first check.</Text>
+          <View style={styles.stack}>
+            {workout.plan.length ? workout.plan.map((exercise) => (
+              <ExerciseCard
+                key={exercise.name}
+                exercise={exercise}
+                mode={workout.mode}
+                checked={workout.checked.includes(exercise.name)}
+                onToggle={() => toggleExercise(exercise.name)}
+              />
+            )) : <Card><Text style={styles.muted}>Rest day. Stretch lightly or take the win.</Text></Card>}
+          </View>
+          <AppButton label="Mark workout complete" icon="checkmark" disabled={!workout.plan.length} onPress={() => void complete()} />
+        </>
+      ) : null}
+
+      {tab === 'Weekly Plan' ? (
+        <View style={styles.stack}>
+          {Object.entries(WORKOUT_PLAN).map(([day, exercises]) => (
+            <Card key={day}>
+              <Text style={styles.day}>{day}</Text>
+              <Text style={styles.muted}>{exercises.length ? exercises.map((item) => item.name).join(', ') : 'Rest day'}</Text>
+            </Card>
+          ))}
+        </View>
+      ) : null}
+
+      {tab === 'History' ? (
+        <View style={styles.stack}>
+          {logs.length ? logs.slice().reverse().map((log) => (
+            <Card key={`${log.date}_${log.durationMin}_${log.exercises.length}`}>
+              <Text style={styles.day}>{log.date}</Text>
+              <Text style={styles.muted}>{log.exercises.join(', ')}</Text>
+              <Text style={styles.muted}>{log.durationMin} min · {log.caloriesBurned} kcal burned</Text>
+            </Card>
+          )) : <Text style={styles.muted}>No workouts logged yet.</Text>}
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { backgroundColor: colors.background, flex: 1 },
+  content: { gap: 14, padding: 16, paddingBottom: 96 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  stack: { gap: 10 },
+  muted: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+  day: { color: colors.text, fontSize: 18, fontWeight: '900', textTransform: 'capitalize' }
+});

@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "SyncLife",
+    "slug": "synclife",
+    "scheme": "synclife",
+    "version": "1.0.0",
+    "platforms": [
+      "android"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A0A0A",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.synclife.app",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0A"
+      },
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-notifications"
+    ],
+    "extra": {
+      "firebaseApiKey": "",
+      "firebaseAuthDomain": "",
+      "firebaseProjectId": "",
+      "firebaseStorageBucket": "",
+      "firebaseMessagingSenderId": "",
+      "firebaseAppId": "",
+      "googleWebClientId": "",
+      "googleAndroidClientId": "",
+      "eas": {
+        "projectId": "0d4a3a8d-44e1-4740-992d-c1282edcf890"
+      }
+    }
+  }
+}
