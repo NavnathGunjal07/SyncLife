@@ -23,19 +23,27 @@ export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets'
 ];
 
+/**
+ * Uses the PKCE / authorization-code flow (default for expo-auth-session).
+ * Google disabled the implicit flow (id_token + access_token in one step)
+ * for mobile apps — the code flow is the only supported path.
+ */
 export const useGoogleAuthRequest = () =>
   Google.useAuthRequest({
-    webClientId: extra.googleWebClientId || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    androidClientId: extra.googleAndroidClientId || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: extra.googleWebClientId ?? process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    androidClientId: extra.googleAndroidClientId ?? process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     scopes: GOOGLE_SCOPES,
-    responseType: 'id_token token',
-    extraParams: {
-      access_type: 'offline',
-      prompt: 'consent'
-    }
+    // No responseType — defaults to 'code' (PKCE), which is what Google requires
   });
 
-export async function signInWithGoogleTokens(idToken: string, accessToken: string): Promise<AuthUser> {
+/**
+ * Exchange Google tokens for a Firebase credential and return the app's
+ * AuthUser. accessToken is the Google OAuth access token for Sheets API calls.
+ */
+export async function signInWithGoogleTokens(
+  idToken: string,
+  accessToken: string
+): Promise<AuthUser> {
   const credential = GoogleAuthProvider.credential(idToken, accessToken);
   const result = await signInWithCredential(firebaseAuth, credential);
   const user = result.user;

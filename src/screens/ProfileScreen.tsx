@@ -1,4 +1,5 @@
 import { CommonActions, useNavigation } from '@react-navigation/core';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
@@ -11,8 +12,10 @@ import { UserProfile } from '../types';
 
 const goals: UserProfile['fitnessGoal'][] = ['Lose weight', 'Maintain', 'Build muscle'];
 
+type NavProp = NativeStackNavigationProp<{ Auth: undefined; AppTabs: undefined }>;
+
 export function ProfileScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavProp>();
   const { user, profile, updateProfile, syncNow, logout } = useAuthStore();
 
   const updateNumber = (key: keyof Pick<UserProfile, 'weightKg' | 'heightCm' | 'calorieTarget' | 'waterGoalMl' | 'monthlyBudget'>, value: string) => {

@@ -18,25 +18,27 @@ const dailyReminders = [
 
 export async function requestNotificationPermissions() {
   const current = await Notifications.getPermissionsAsync();
-  if (current.granted) {
-    return true;
-  }
+  if (current.granted) return true;
   const requested = await Notifications.requestPermissionsAsync();
   return requested.granted;
 }
 
 export async function scheduleDailyNotifications() {
   const granted = await requestNotificationPermissions();
-  if (!granted) {
-    return;
-  }
+  if (!granted) return;
 
   await Notifications.cancelAllScheduledNotificationsAsync();
+
+  // CalendarTrigger with hour + minute + repeats = true schedules a daily alarm
   await Promise.all(
     dailyReminders.map((reminder) =>
       Notifications.scheduleNotificationAsync({
         content: { title: 'SyncLife', body: reminder.body },
-        trigger: { hour: reminder.hour, minute: reminder.minute, repeats: true }
+        trigger: {
+          hour: reminder.hour,
+          minute: reminder.minute,
+          repeats: true
+        } as any
       })
     )
   );
@@ -44,23 +46,26 @@ export async function scheduleDailyNotifications() {
 
 export async function scheduleWaterReminderNotifications(intakeMl: number, goalMl: number) {
   const granted = await requestNotificationPermissions();
-  if (!granted || goalMl <= 0 || intakeMl >= goalMl * 0.5) {
-    return;
-  }
+  if (!granted || goalMl <= 0 || intakeMl >= goalMl * 0.5) return;
 
   const now = new Date();
-  const notifications = [];
+  const notifications: ReturnType<typeof Notifications.scheduleNotificationAsync>[] = [];
+
   for (let hour = 9; hour <= 20; hour += 2) {
     const triggerDate = new Date();
     triggerDate.setHours(hour, 0, 0, 0);
     if (triggerDate > now) {
       notifications.push(
         Notifications.scheduleNotificationAsync({
-          content: { title: 'Water check', body: 'Hydrate now and keep your daily goal moving.' },
+          content: {
+            title: 'Water check',
+            body: 'Hydrate now and keep your daily goal moving.'
+          },
           trigger: triggerDate
         })
       );
     }
   }
+
   await Promise.all(notifications);
 }

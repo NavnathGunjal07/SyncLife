@@ -1,20 +1,37 @@
 import { useNavigation } from '@react-navigation/core';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../components/AppButton';
 import { colors } from '../constants/theme';
 import { useAuthStore } from '../store/auth';
 
+type AuthStackParamList = {
+  Onboarding: undefined;
+  SignIn: undefined;
+  SheetSetup: undefined;
+};
+type NavProp = NativeStackNavigationProp<AuthStackParamList>;
+
 const slides = [
-  { title: 'Track the day', body: 'Calories, Indian meals, water, workouts, expenses, and gold holdings live together.' },
-  { title: 'Own the data', body: 'SyncLife writes to Google Sheets in your Drive, with offline queueing when the network drops.' },
-  { title: 'Close the loop', body: 'Daily summaries, reminders, streaks, and progress rings keep the day easy to read.' }
+  {
+    title: 'Track the day',
+    body: 'Calories, Indian meals, water, workouts, expenses, and gold holdings live together.'
+  },
+  {
+    title: 'Own the data',
+    body: 'SyncLife writes to Google Sheets in your Drive, with offline queueing when the network drops.'
+  },
+  {
+    title: 'Close the loop',
+    body: 'Daily summaries, reminders, streaks, and progress rings keep the day easy to read.'
+  }
 ];
 
-const width = Dimensions.get('window').width;
+const { width } = Dimensions.get('window');
 
 export function OnboardingScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavProp>();
   const markOnboardingComplete = useAuthStore((state) => state.markOnboardingComplete);
 
   return (
@@ -32,7 +49,7 @@ export function OnboardingScreen() {
       </ScrollView>
       <View style={styles.footer}>
         <AppButton
-          label="Continue"
+          label="Get started"
           icon="arrow-forward"
           onPress={() => {
             markOnboardingComplete();

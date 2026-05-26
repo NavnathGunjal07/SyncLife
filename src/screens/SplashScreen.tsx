@@ -1,21 +1,43 @@
 import { CommonActions, useNavigation } from '@react-navigation/core';
-import { useEffect } from 'react';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../constants/theme';
 import { useAuthStore } from '../store/auth';
+import { RootStackParamList } from '../types';
+
+type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 export function SplashScreen() {
-  const navigation = useNavigation();
-  const { user, onboardingComplete, spreadsheetReady } = useAuthStore();
+  const navigation = useNavigation<NavProp>();
+  const hydrated = useAuthStore((state) => state._hydrated);
+  const user = useAuthStore((state) => state.user);
+  const onboardingComplete = useAuthStore((state) => state.onboardingComplete);
+  const spreadsheetReady = useAuthStore((state) => state.spreadsheetReady);
+  const isTokenValid = useAuthStore((state) => state.isTokenValid);
+  const navigated = useRef(false);
 
   useEffect(() => {
+    if (!hydrated || navigated.current) return;
+
+    // Show splash for at least 1.5s even if hydration is instant
     const timer = setTimeout(() => {
-      const routeName = user && onboardingComplete && spreadsheetReady ? 'AppTabs' : 'Auth';
-      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: routeName }] }));
-    }, 2000);
+      navigated.current = true;
+
+      const fullyReady =
+        user && onboardingComplete && spreadsheetReady && isTokenValid();
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: fullyReady ? 'AppTabs' : 'Auth' }]
+        })
+      );
+    }, 1500);
+
     return () => clearTimeout(timer);
-  }, [navigation, onboardingComplete, spreadsheetReady, user]);
+  }, [hydrated, navigation, onboardingComplete, spreadsheetReady, user, isTokenValid]);
 
   return (
     <View style={styles.container}>

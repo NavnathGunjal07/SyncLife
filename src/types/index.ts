@@ -113,7 +113,7 @@ export interface AuthUser {
 
 export interface QueuedWrite {
   id: string;
-  type: 'meal' | 'workout' | 'water' | 'transaction' | 'gold' | 'summary';
+  type: 'meal' | 'workout' | 'water' | 'transaction' | 'gold' | 'summary' | 'goals';
   payload: MealLog | WorkoutLog | WaterLog | Transaction | GoldEntry | DailySummary;
   createdAt: string;
   attempts: number;
@@ -121,9 +121,7 @@ export interface QueuedWrite {
 
 export type RootStackParamList = {
   Splash: undefined;
-  Onboarding: undefined;
-  SignIn: undefined;
-  SheetSetup: undefined;
+  Auth: undefined;
   AppTabs: undefined;
 };
 

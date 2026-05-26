@@ -1,13 +1,18 @@
 node_modules/
 .expo/
-.expo-start*.log
-dist/
-build/
-coverage/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+
+# Environment variables — NEVER commit real keys
 .env
-.env.*
-!.env.example
-client_secret.json
+.env.local
+.env.*.local
+
+# Android build output
+android/
+*.keystore
+
+# iOS build output
+ios/
+
+# Build artifacts
+dist/
+web-build/

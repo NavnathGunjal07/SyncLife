@@ -7,11 +7,28 @@ import { RootStackParamList } from '../types';
 import { AppNavigator } from './AppNavigator';
 import { AuthNavigator } from './AuthNavigator';
 
-const Stack = createNativeStackNavigator<RootStackParamList & { Auth: undefined }>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export function RootNavigator() {
+type Props = {
+  onReady?: () => void;
+};
+
+export function RootNavigator({ onReady }: Props) {
   return (
-    <NavigationContainer theme={{ dark: true, colors: { primary: colors.accent, background: colors.background, card: colors.surface, text: colors.text, border: colors.border, notification: colors.accent } }}>
+    <NavigationContainer
+      onReady={onReady}
+      theme={{
+        dark: true,
+        colors: {
+          primary: colors.accent,
+          background: colors.background,
+          card: colors.surface,
+          text: colors.text,
+          border: colors.border,
+          notification: colors.accent
+        }
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Auth" component={AuthNavigator} />
