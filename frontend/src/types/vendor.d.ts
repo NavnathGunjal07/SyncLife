@@ -24,6 +24,11 @@ declare module '@react-navigation/core' {
     navigate: (name: string, params?: unknown) => void;
     dispatch: (action: unknown) => void;
   }>(): T;
+
+  export function createNavigationContainerRef<ParamList = Record<string, unknown>>(): {
+    isReady: () => boolean;
+    navigate: (name: keyof ParamList & string, params?: unknown) => void;
+  };
 }
 
 declare module '@gorhom/bottom-sheet' {
@@ -70,14 +75,33 @@ declare module 'firebase/auth' {
 }
 
 declare module 'expo-notifications' {
+  export type Notification = {
+    request: {
+      content: {
+        title: string | null;
+        body: string | null;
+        data: Record<string, any>;
+      };
+    };
+  };
+
+  export type NotificationResponse = {
+    notification: Notification;
+  };
+
+  export type Subscription = { remove: () => void };
+
   export function setNotificationHandler(handler: {
-    handleNotification: () => Promise<{ shouldPlaySound: boolean; shouldSetBadge: boolean; shouldShowAlert: boolean }>;
+    handleNotification: (notification: Notification) => Promise<{ shouldPlaySound: boolean; shouldSetBadge: boolean; shouldShowAlert: boolean }>;
   }): void;
   export function getPermissionsAsync(): Promise<{ granted: boolean }>;
   export function requestPermissionsAsync(): Promise<{ granted: boolean }>;
   export function cancelAllScheduledNotificationsAsync(): Promise<void>;
+  export function cancelScheduledNotificationAsync(identifier: string): Promise<void>;
   export function scheduleNotificationAsync(config: {
-    content: { title: string; body: string };
+    content: { title: string; body: string; sound?: boolean | string; data?: Record<string, unknown> };
     trigger: { hour: number; minute: number; repeats: boolean } | Date;
   }): Promise<string>;
+  export function getLastNotificationResponseAsync(): Promise<NotificationResponse | null>;
+  export function addNotificationResponseReceivedListener(listener: (response: NotificationResponse) => void): Subscription;
 }

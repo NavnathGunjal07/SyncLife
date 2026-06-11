@@ -1,0 +1,84 @@
+import { createNavigationContainerRef, NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
+import { useEffect, useRef } from 'react';
+
+import { colors } from '../constants/theme';
+import { MotivationCallScreen } from '../screens/MotivationCallScreen';
+import { SplashScreen } from '../screens/SplashScreen';
+import { MotivationType, RootStackParamList } from '../types';
+import { AppNavigator } from './AppNavigator';
+import { AuthNavigator } from './AuthNavigator';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+type Props = {
+  onReady?: () => void;
+};
+
+export function RootNavigator({ onReady }: Props) {
+  // Call requested before the navigator was ready (cold start from a notification tap)
+  const pendingCallType = useRef<MotivationType | null>(null);
+
+  const openCall = (alarmType: MotivationType) => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate('MotivationCall', { alarmType });
+    } else {
+      pendingCallType.current = alarmType;
+    }
+  };
+
+  useEffect(() => {
+    const handleResponse = (response: Notifications.NotificationResponse | null) => {
+      const data = response?.notification.request.content.data;
+      if (data?.kind === 'motivation-call') {
+        openCall((data.alarmType as MotivationType) ?? 'gym');
+      }
+    };
+
+    // App launched by tapping the notification. SplashScreen resets the stack
+    // ~1.5s after hydration, so wait until that reset has happened before
+    // pushing the call screen — otherwise the reset would wipe it.
+    const coldStartTimer = setTimeout(() => {
+      void Notifications.getLastNotificationResponseAsync().then(handleResponse);
+    }, 2600);
+    // App already running when the notification is tapped
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    return () => {
+      clearTimeout(coldStartTimer);
+      subscription.remove();
+    };
+  }, []);
+
+  return (
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        onReady?.();
+        if (pendingCallType.current) {
+          navigationRef.navigate('MotivationCall', { alarmType: pendingCallType.current });
+          pendingCallType.current = null;
+        }
+      }}
+      theme={{
+        dark: true,
+        colors: {
+          primary: colors.accent,
+          background: colors.background,
+          card: colors.surface,
+          text: colors.text,
+          border: colors.border,
+          notification: colors.accent
+        }
+      }}
+    >
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Auth" component={AuthNavigator} />
+        <Stack.Screen name="AppTabs" component={AppNavigator} />
+        <Stack.Screen name="MotivationCall" component={MotivationCallScreen} options={{ animation: 'fade', gestureEnabled: false }} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

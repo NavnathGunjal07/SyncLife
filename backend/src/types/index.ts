@@ -1,3 +1,5 @@
+// ─── Domain Types ────────────────────────────────────────────────────────────
+
 export type MealType = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snacks';
 export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type Level = 'Beginner' | 'Intermediate' | 'Advanced';
@@ -5,13 +7,7 @@ export type WorkoutMode = 'Home' | 'Gym';
 export type TransactionType = 'expense' | 'income';
 export type GoldCategory = 'Jewellery' | 'Coins' | 'Digital Gold' | 'SIP';
 
-export interface Meal {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  type: MealType;
-}
+// ─── Log Payloads ─────────────────────────────────────────────────────────────
 
 export interface MealLog {
   mealId: string;
@@ -19,14 +15,6 @@ export interface MealLog {
   date: string;
   totalCalories: number;
   totalProtein: number;
-}
-
-export interface Exercise {
-  name: string;
-  sets: number;
-  reps: number;
-  durationSec?: number;
-  homeAlt?: string;
 }
 
 export interface WorkoutLog {
@@ -63,13 +51,7 @@ export interface GoldEntry {
   date: string;
 }
 
-export interface GoldHolding {
-  category: GoldCategory;
-  totalGrams: number;
-  avgBuyPrice: number;
-  currentValue: number;
-  pnl: number;
-}
+// ─── Summary & Profile ────────────────────────────────────────────────────────
 
 export interface DailySummary {
   date: string;
@@ -84,16 +66,6 @@ export interface DailySummary {
   completionPercent: number;
 }
 
-export interface DayLogs {
-  meals: MealLog[];
-  workouts: WorkoutLog[];
-  water: WaterLog[];
-  transactions: Transaction[];
-  gold: GoldEntry[];
-  profile: UserProfile;
-  streak: number;
-}
-
 export interface UserProfile {
   weightKg: number;
   heightCm: number;
@@ -104,12 +76,7 @@ export interface UserProfile {
   monthlyBudget: number;
 }
 
-export interface AuthUser {
-  uid: string;
-  name: string;
-  email: string;
-  photoURL?: string;
-}
+// ─── Queue ────────────────────────────────────────────────────────────────────
 
 export interface QueuedWrite {
   id: string;
@@ -119,16 +86,14 @@ export interface QueuedWrite {
   attempts: number;
 }
 
-export type RootStackParamList = {
-  Splash: undefined;
-  Auth: undefined;
-  AppTabs: undefined;
-};
+// ─── Sheet names ──────────────────────────────────────────────────────────────
 
-export type AppTabParamList = {
-  Home: undefined;
-  Meals: undefined;
-  Workout: undefined;
-  Finance: undefined;
-  Profile: undefined;
-};
+export type SheetName =
+  | 'Calories'
+  | 'Workout'
+  | 'Water'
+  | 'Money'
+  | 'Gold'
+  | 'Daily_Summary'
+  | 'Goals'
+  | 'Meal_Plans';

@@ -1,18 +1,36 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
 node_modules/
-.expo/
 
-# Environment variables — NEVER commit real keys
+# ─── Expo / React Native ──────────────────────────────────────────────────────
+.expo/
+frontend/.expo/
+
+# ─── Environment variables — NEVER commit real keys ──────────────────────────
 .env
 .env.local
 .env.*.local
+frontend/.env
+frontend/.env.local
+backend/.env
+backend/.env.local
 
-# Android build output
+# ─── Google credential files — contain live API keys ─────────────────────────
+frontend/google-services.json
+frontend/client_secret.json
+**/google-services.json
+**/client_secret.json
+
+# ─── Android build output ─────────────────────────────────────────────────────
 android/
+frontend/android/
 *.keystore
 
-# iOS build output
+# ─── iOS build output ─────────────────────────────────────────────────────────
 ios/
+frontend/ios/
 
-# Build artifacts
+# ─── Build artifacts ──────────────────────────────────────────────────────────
 dist/
+frontend/dist/
+backend/dist/
 web-build/

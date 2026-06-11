@@ -6,6 +6,7 @@ import Toast from 'react-native-toast-message';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { MotivationAlarmsCard } from '../components/MotivationAlarmsCard';
 import { colors } from '../constants/theme';
 import { useAuthStore } from '../store/auth';
 import { UserProfile } from '../types';
@@ -55,6 +56,8 @@ export function ProfileScreen() {
         <Field label="Daily water goal (ml)" value={String(profile.waterGoalMl)} onChangeText={(text) => updateNumber('waterGoalMl', text)} />
         <Field label="Monthly budget (₹)" value={String(profile.monthlyBudget)} onChangeText={(text) => updateNumber('monthlyBudget', text)} />
       </Card>
+
+      <MotivationAlarmsCard />
 
       <AppButton label="Sync now" icon="sync" onPress={() => void sync()} />
       <AppButton

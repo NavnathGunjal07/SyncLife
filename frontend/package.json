@@ -4,7 +4,7 @@
   "private": true,
   "main": "expo/AppEntry.js",
   "scripts": {
-    "start": "expo start --lan --port 8090",
+    "start": "expo start",
     "phone": "expo start --lan --port 8090",
     "phone:tunnel": "expo start --tunnel --port 8090",
     "android": "expo run:android",
@@ -32,6 +32,7 @@
     "expo-dev-client": "~4.0.29",
     "expo-font": "~12.0.10",
     "expo-notifications": "~0.28.19",
+    "expo-speech": "~12.0.2",
     "expo-splash-screen": "~0.27.7",
     "expo-status-bar": "~1.12.1",
     "expo-web-browser": "~13.0.3",
