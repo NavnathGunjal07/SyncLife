@@ -1,9 +1,25 @@
-import * as Speech from 'expo-speech';
-
 import { pickLocalMessage } from '../constants/motivation';
 import { MotivationType } from '../types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+// expo-speech relies on a native module ('ExpoSpeech') that is present in
+// development/production builds but may be unavailable in some runtimes
+// (e.g. an outdated Expo Go shell). Load it lazily and degrade gracefully so a
+// missing native module never crashes the motivation call — the text still shows.
+let speechModule: typeof import('expo-speech') | null = null;
+let speechLoadFailed = false;
+
+function getSpeech(): typeof import('expo-speech') | null {
+  if (speechModule || speechLoadFailed) return speechModule;
+  try {
+    speechModule = require('expo-speech') as typeof import('expo-speech');
+  } catch {
+    speechLoadFailed = true;
+    speechModule = null;
+  }
+  return speechModule;
+}
 
 export type MotivationContext = {
   name?: string;
@@ -50,18 +66,34 @@ export async function getMotivationMessage(type: MotivationType, accessToken: st
   return { message: pickLocalMessage(type, context.name, context.streakDays), source: 'local' };
 }
 
-/** Speaks the coach message out loud — the "voice" of the call. */
+/** Speaks the coach message out loud — the "voice" of the call. No-ops if speech is unavailable. */
 export function speakMessage(message: string, onDone?: () => void) {
-  Speech.stop();
-  Speech.speak(message, {
-    language: 'en-IN',
-    pitch: 1.0,
-    rate: 0.95,
-    onDone,
-    onError: onDone
-  });
+  const Speech = getSpeech();
+  if (!Speech) {
+    // Native speech unavailable — invoke onDone so the UI flow still completes.
+    onDone?.();
+    return;
+  }
+  try {
+    Speech.stop();
+    Speech.speak(message, {
+      language: 'en-IN',
+      pitch: 1.0,
+      rate: 0.95,
+      onDone,
+      onError: onDone
+    });
+  } catch {
+    onDone?.();
+  }
 }
 
 export function stopSpeaking() {
-  Speech.stop();
+  const Speech = getSpeech();
+  if (!Speech) return;
+  try {
+    Speech.stop();
+  } catch {
+    // ignore
+  }
 }

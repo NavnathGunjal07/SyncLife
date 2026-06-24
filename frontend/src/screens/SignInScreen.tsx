@@ -1,92 +1,116 @@
 import { useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
 import { colors } from '../constants/theme';
-import { signInWithGoogleTokens, useGoogleAuthRequest } from '../services/googleAuth';
+import { login } from '../services/api';
 import { useAuthStore } from '../store/auth';
-import { RootStackParamList } from '../types';
 
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
+type AuthStackParamList = {
+  Onboarding: undefined;
+  SignIn: undefined;
+  Register: undefined;
+};
+type NavProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export function SignInScreen() {
   const navigation = useNavigation<NavProp>();
-  const [request, response, promptAsync] = useGoogleAuthRequest();
-  const setGoogleSession = useAuthStore((state) => state.setGoogleSession);
+  const setSession = useAuthStore((state) => state.setSession);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function finishSignIn() {
-      if (response?.type !== 'success') {
-        if (response?.type === 'error') {
-          Toast.show({
-            type: 'error',
-            text1: 'Google sign-in failed',
-            text2: 'Authentication was cancelled or failed. Please try again.'
-          });
-        }
-        return;
-      }
-
-      // With the PKCE code flow, expo-auth-session exchanges the code and
-      // returns tokens in response.authentication
-      const idToken = response.authentication?.idToken;
-      const accessToken = response.authentication?.accessToken;
-
-      if (!idToken || !accessToken) {
-        Toast.show({
-          type: 'error',
-          text1: 'Google sign-in failed',
-          text2: 'Missing tokens from Google. Please try again.'
-        });
-        return;
-      }
-
-      try {
-        const user = await signInWithGoogleTokens(idToken, accessToken);
-        setGoogleSession(user, accessToken);
-        // Navigate to SheetSetup — this sets up the Google Sheets workbook
-        navigation.navigate('Auth');
-      } catch (error) {
-        Toast.show({
-          type: 'error',
-          text1: 'Sign-in failed',
-          text2: error instanceof Error ? error.message : 'Try again.'
-        });
-      }
+  const handleLogin = async () => {
+    if (!username.trim() || !password) {
+      Toast.show({ type: 'error', text1: 'Enter username and password.' });
+      return;
     }
-    void finishSignIn();
-  }, [navigation, response, setGoogleSession]);
+    setLoading(true);
+    try {
+      const { token, user } = await login(username.trim().toLowerCase(), password);
+      setSession({ id: user.id, username: user.username, name: user.name }, token);
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Sign in failed',
+        text2: error instanceof Error ? error.message : 'Check your credentials and try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logo}>
-        <Text style={styles.logoText}>SL</Text>
-      </View>
-      <Text style={styles.title}>SyncLife</Text>
-      <Text style={styles.body}>
-        Sign in with Google to create and sync your personal Sheets workbook.
-      </Text>
-      {!request ? <ActivityIndicator color={colors.accent} /> : null}
-      <AppButton
-        label="Sign in with Google"
-        icon="logo-google"
-        disabled={!request}
-        onPress={() => void promptAsync()}
-      />
-      <Text style={styles.scope}>
-        Uses Drive file access and Google Sheets access only for your SyncLife spreadsheet.
-      </Text>
-    </View>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.logo}>
+          <Text style={styles.logoText}>SL</Text>
+        </View>
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.body}>Sign in to continue tracking your meals, workouts, and finances.</Text>
+
+        <View style={styles.form}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="your_username"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+          />
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="••••••••"
+            placeholderTextColor={colors.textMuted}
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={() => void handleLogin()}
+          />
+        </View>
+
+        {loading ? (
+          <ActivityIndicator color={colors.accent} />
+        ) : (
+          <AppButton label="Sign in" icon="log-in" onPress={() => void handleLogin()} />
+        )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <Text style={styles.link}>Create one</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.background },
   container: {
-    backgroundColor: colors.background,
-    flex: 1,
+    flexGrow: 1,
     gap: 18,
     justifyContent: 'center',
     padding: 28
@@ -100,25 +124,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 56
   },
-  logoText: {
-    color: colors.background,
-    fontSize: 20,
-    fontWeight: '900'
-  },
-  title: {
+  logoText: { color: colors.background, fontSize: 20, fontWeight: '900' },
+  title: { color: colors.text, fontSize: 34, fontWeight: '900' },
+  body: { color: colors.textMuted, fontSize: 16, lineHeight: 24 },
+  form: { gap: 8 },
+  label: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 4, marginTop: 8 },
+  input: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
     color: colors.text,
-    fontSize: 34,
-    fontWeight: '900'
-  },
-  body: {
-    color: colors.textMuted,
     fontSize: 16,
-    lineHeight: 24
+    padding: 14
   },
-  scope: {
-    color: colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: 'center'
-  }
+  footer: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center' },
+  footerText: { color: colors.textMuted, fontSize: 14 },
+  link: { color: colors.accent, fontSize: 14, fontWeight: '700' }
 });

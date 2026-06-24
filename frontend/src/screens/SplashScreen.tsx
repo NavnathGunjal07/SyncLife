@@ -14,20 +14,15 @@ export function SplashScreen() {
   const hydrated = useAuthStore((state) => state._hydrated);
   const user = useAuthStore((state) => state.user);
   const onboardingComplete = useAuthStore((state) => state.onboardingComplete);
-  const spreadsheetReady = useAuthStore((state) => state.spreadsheetReady);
   const isTokenValid = useAuthStore((state) => state.isTokenValid);
   const navigated = useRef(false);
 
   useEffect(() => {
     if (!hydrated || navigated.current) return;
 
-    // Show splash for at least 1.5s even if hydration is instant
     const timer = setTimeout(() => {
       navigated.current = true;
-
-      const fullyReady =
-        user && onboardingComplete && spreadsheetReady && isTokenValid();
-
+      const fullyReady = user && onboardingComplete && isTokenValid();
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
@@ -37,7 +32,7 @@ export function SplashScreen() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [hydrated, navigation, onboardingComplete, spreadsheetReady, user, isTokenValid]);
+  }, [hydrated, navigation, onboardingComplete, user, isTokenValid]);
 
   return (
     <View style={styles.container}>
@@ -66,19 +61,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     width: 76
   },
-  logoText: {
-    color: colors.background,
-    fontSize: 28,
-    fontWeight: '900'
-  },
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: '900'
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 15,
-    marginTop: 8
-  }
+  logoText: { color: colors.background, fontSize: 28, fontWeight: '900' },
+  title: { color: colors.text, fontSize: 32, fontWeight: '900' },
+  subtitle: { color: colors.textMuted, fontSize: 15, marginTop: 8 }
 });

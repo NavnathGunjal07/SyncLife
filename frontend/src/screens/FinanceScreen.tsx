@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { VictoryPie } from 'victory-native';
 import Toast from 'react-native-toast-message';
 
 import { AppBottomSheet } from '../components/AppBottomSheet';
@@ -110,16 +109,31 @@ export function FinanceScreen() {
               <Card style={styles.half}><Text style={styles.cardTitle}>Monthly expense</Text><Text style={styles.metricSmall}>{inr(monthlyExpense)}</Text></Card>
               <Card style={styles.half}><Text style={styles.cardTitle}>Net</Text><Text style={styles.metricSmall}>{inr(monthlyIncome - monthlyExpense)}</Text></Card>
             </View>
-            <Card style={styles.center}>
+            <Card>
               <Text style={styles.cardTitle}>Expense breakdown</Text>
-              <VictoryPie
-                data={expenseBreakdown}
-                width={320}
-                height={260}
-                colorScale={[colors.accent, colors.warning, '#38BDF8', '#A78BFA', '#F472B6', '#F87171', '#FACC15', colors.textMuted]}
-                innerRadius={62}
-                style={{ labels: { fill: colors.text, fontSize: 12 } }}
-              />
+              {expenseBreakdown[0]?.x === 'No data' ? (
+                <Text style={styles.muted}>No expenses this month.</Text>
+              ) : (
+                <View style={styles.breakdown}>
+                  {expenseBreakdown.map((item, idx) => {
+                    const total = expenseBreakdown.reduce((s, d) => s + d.y, 0);
+                    const pct = total > 0 ? Math.round((item.y / total) * 100) : 0;
+                    const barColors = [colors.accent, '#38BDF8', '#A78BFA', '#F472B6', '#F87171', '#FACC15', colors.textMuted];
+                    return (
+                      <View key={item.x} style={styles.breakdownRow}>
+                        <View style={styles.breakdownLabel}>
+                          <View style={[styles.dot, { backgroundColor: barColors[idx % barColors.length] }]} />
+                          <Text style={styles.muted}>{item.x}</Text>
+                        </View>
+                        <View style={styles.barTrack}>
+                          <View style={[styles.bar, { width: `${pct}%`, backgroundColor: barColors[idx % barColors.length] }]} />
+                        </View>
+                        <Text style={styles.pct}>{pct}%</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </Card>
           </>
         ) : null}
@@ -176,5 +190,12 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center' },
   sheet: { gap: 14 },
   sheetTitle: { color: colors.text, fontSize: 24, fontWeight: '900' },
-  input: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, padding: 12 }
+  input: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, padding: 12 },
+  breakdown: { gap: 10, marginTop: 12 },
+  breakdownRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  breakdownLabel: { alignItems: 'center', flexDirection: 'row', gap: 6, width: 90 },
+  dot: { borderRadius: 6, height: 10, width: 10 },
+  barTrack: { flex: 1, backgroundColor: colors.surface, borderRadius: 4, height: 8 },
+  bar: { borderRadius: 4, height: 8 },
+  pct: { color: colors.textMuted, fontSize: 12, textAlign: 'right', width: 36 }
 });

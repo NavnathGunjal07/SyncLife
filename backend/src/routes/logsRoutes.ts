@@ -1,23 +1,29 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-
 import {
-  appendMealLog,
-  appendWorkoutLog,
-  appendWaterLog,
-  appendTransaction,
-  appendGoldEntry,
-  writeDailySummary
-} from '../services/sheetsService.js';
+  createMealLog,
+  createWorkoutLog,
+  createWaterLog,
+  createTransaction,
+  createGoldEntry,
+  upsertDailySummary,
+  getMealLogsForDate,
+  getWorkoutLogsForDate,
+  getWaterLogsForDate,
+  getTransactionsForMonth,
+  getAllGoldEntries,
+  getDailySummary
+} from '../services/dbService.js';
 
 const router = Router();
 
 // ─── Zod Schemas ─────────────────────────────────────────────────────────────
 
 const mealLogSchema = z.object({
-  spreadsheetId: z.string().min(1),
   log: z.object({
     mealId: z.string().min(1),
+    mealName: z.string().optional(),
+    mealType: z.string().optional(),
     quantity: z.number().positive(),
     date: z.string().min(1),
     totalCalories: z.number().nonnegative(),
@@ -26,10 +32,9 @@ const mealLogSchema = z.object({
 });
 
 const workoutLogSchema = z.object({
-  spreadsheetId: z.string().min(1),
   log: z.object({
     date: z.string().min(1),
-    day: z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
+    day: z.string().min(1),
     exercises: z.array(z.string()),
     durationMin: z.number().nonnegative(),
     caloriesBurned: z.number().nonnegative(),
@@ -38,7 +43,6 @@ const workoutLogSchema = z.object({
 });
 
 const waterLogSchema = z.object({
-  spreadsheetId: z.string().min(1),
   log: z.object({
     date: z.string().min(1),
     time: z.string().min(1),
@@ -49,7 +53,6 @@ const waterLogSchema = z.object({
 });
 
 const transactionSchema = z.object({
-  spreadsheetId: z.string().min(1),
   tx: z.object({
     id: z.string().min(1),
     type: z.enum(['expense', 'income']),
@@ -61,7 +64,6 @@ const transactionSchema = z.object({
 });
 
 const goldEntrySchema = z.object({
-  spreadsheetId: z.string().min(1),
   entry: z.object({
     id: z.string().min(1),
     category: z.enum(['Jewellery', 'Coins', 'Digital Gold', 'SIP']),
@@ -72,7 +74,6 @@ const goldEntrySchema = z.object({
 });
 
 const summarySchema = z.object({
-  spreadsheetId: z.string().min(1),
   summary: z.object({
     date: z.string().min(1),
     caloriesConsumed: z.number().nonnegative(),
@@ -87,69 +88,134 @@ const summarySchema = z.object({
   })
 });
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
+// ─── Meal Routes ──────────────────────────────────────────────────────────────
 
-// POST /api/logs/meal
 router.post('/meal', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = mealLogSchema.parse(req.body);
-    await appendMealLog(req.accessToken, parsed.spreadsheetId, parsed.log);
+    const { log } = mealLogSchema.parse(req.body);
+    await createMealLog(req.userId, log);
     res.status(201).json({ success: true });
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/logs/workout
+router.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
+    const logs = await getMealLogsForDate(req.userId, date);
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── Workout Routes ───────────────────────────────────────────────────────────
+
 router.post('/workout', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = workoutLogSchema.parse(req.body);
-    await appendWorkoutLog(req.accessToken, parsed.spreadsheetId, parsed.log);
+    const { log } = workoutLogSchema.parse(req.body);
+    await createWorkoutLog(req.userId, log);
     res.status(201).json({ success: true });
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/logs/water
+router.get('/workouts', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
+    const raw = await getWorkoutLogsForDate(req.userId, date);
+    const logs = raw.map((l) => ({ ...l, exercises: JSON.parse(l.exercises) as string[] }));
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── Water Routes ─────────────────────────────────────────────────────────────
+
 router.post('/water', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = waterLogSchema.parse(req.body);
-    await appendWaterLog(req.accessToken, parsed.spreadsheetId, parsed.log);
+    const { log } = waterLogSchema.parse(req.body);
+    await createWaterLog(req.userId, log);
     res.status(201).json({ success: true });
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/logs/transaction
+router.get('/water', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
+    const logs = await getWaterLogsForDate(req.userId, date);
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── Transaction Routes ───────────────────────────────────────────────────────
+
 router.post('/transaction', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = transactionSchema.parse(req.body);
-    await appendTransaction(req.accessToken, parsed.spreadsheetId, parsed.tx);
+    const { tx } = transactionSchema.parse(req.body);
+    await createTransaction(req.userId, tx);
     res.status(201).json({ success: true });
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/logs/gold
+router.get('/transactions', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const year = String(req.query.year ?? new Date().getFullYear());
+    const month = String(req.query.month ?? String(new Date().getMonth() + 1).padStart(2, '0'));
+    const transactions = await getTransactionsForMonth(req.userId, year, month);
+    res.json({ transactions });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── Gold Routes ──────────────────────────────────────────────────────────────
+
 router.post('/gold', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = goldEntrySchema.parse(req.body);
-    await appendGoldEntry(req.accessToken, parsed.spreadsheetId, parsed.entry);
+    const { entry } = goldEntrySchema.parse(req.body);
+    await createGoldEntry(req.userId, entry);
     res.status(201).json({ success: true });
   } catch (error) {
     next(error);
   }
 });
 
-// POST /api/logs/summary
+router.get('/gold', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const entries = await getAllGoldEntries(req.userId);
+    res.json({ entries });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── Summary Routes ───────────────────────────────────────────────────────────
+
 router.post('/summary', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = summarySchema.parse(req.body);
-    await writeDailySummary(req.accessToken, parsed.spreadsheetId, parsed.summary);
+    const { summary } = summarySchema.parse(req.body);
+    await upsertDailySummary(req.userId, summary);
     res.status(201).json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/summary', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
+    const summary = await getDailySummary(req.userId, date);
+    res.json({ summary });
   } catch (error) {
     next(error);
   }

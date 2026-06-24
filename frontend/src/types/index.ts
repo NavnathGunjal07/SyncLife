@@ -105,10 +105,9 @@ export interface UserProfile {
 }
 
 export interface AuthUser {
-  uid: string;
+  id: string;
+  username: string;
   name: string;
-  email: string;
-  photoURL?: string;
 }
 
 export interface QueuedWrite {

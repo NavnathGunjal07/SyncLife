@@ -31,26 +31,6 @@ declare module '@react-navigation/core' {
   };
 }
 
-declare module '@gorhom/bottom-sheet' {
-  import { ComponentType, ReactNode, Ref } from 'react';
-  import { ViewStyle } from 'react-native';
-
-  type Props = {
-    ref?: Ref<unknown>;
-    index?: number;
-    snapPoints: Array<string | number>;
-    enablePanDownToClose?: boolean;
-    onClose?: () => void;
-    backgroundStyle?: ViewStyle;
-    handleIndicatorStyle?: ViewStyle;
-    children?: ReactNode;
-  };
-
-  const BottomSheet: ComponentType<Props>;
-  export const BottomSheetView: ComponentType<{ style?: ViewStyle; children?: ReactNode }>;
-  export default BottomSheet;
-}
-
 declare module 'firebase/app' {
   export function initializeApp(config: Record<string, unknown>): unknown;
   export function getApps(): unknown[];

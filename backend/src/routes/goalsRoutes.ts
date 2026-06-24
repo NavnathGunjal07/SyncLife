@@ -1,14 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-
-import { writeGoals } from '../services/sheetsService.js';
+import { upsertUserProfile, getUserProfile } from '../services/dbService.js';
 
 const router = Router();
 
-// ─── Zod Schema ──────────────────────────────────────────────────────────────
-
 const goalsSchema = z.object({
-  spreadsheetId: z.string().min(1),
   profile: z.object({
     weightKg: z.number().positive(),
     heightCm: z.number().positive(),
@@ -20,14 +16,22 @@ const goalsSchema = z.object({
   })
 });
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
+// GET /api/goals — fetch the authenticated user's profile
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profile = await getUserProfile(req.userId);
+    res.json({ profile });
+  } catch (error) {
+    next(error);
+  }
+});
 
-// POST /api/goals
+// POST /api/goals — create or update the authenticated user's profile
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const parsed = goalsSchema.parse(req.body);
-    await writeGoals(req.accessToken, parsed.spreadsheetId, parsed.profile);
-    res.status(201).json({ success: true });
+    const { profile } = goalsSchema.parse(req.body);
+    const updated = await upsertUserProfile(req.userId, profile);
+    res.status(201).json({ success: true, profile: updated });
   } catch (error) {
     next(error);
   }

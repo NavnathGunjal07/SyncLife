@@ -1,0 +1,146 @@
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" is the Vercel serverless runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  // Pooled connection (Neon -pooler host) — used at runtime by the app.
+  url      = env("DATABASE_URL")
+  // Direct connection (non-pooled) — used by Prisma CLI for migrations.
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile      UserProfile?
+  mealLogs     MealLog[]
+  workoutLogs  WorkoutLog[]
+  waterLogs    WaterLog[]
+  transactions Transaction[]
+  goldEntries  GoldEntry[]
+  summaries    DailySummary[]
+}
+
+model UserProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  weightKg      Float    @default(70)
+  heightCm      Float    @default(170)
+  fitnessGoal   String   @default("Maintain")
+  calorieTarget Int      @default(2200)
+  waterGoalMl   Int      @default(2310)
+  waterGoalMode String   @default("auto")
+  monthlyBudget Float    @default(30000)
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MealLog {
+  id            String   @id @default(cuid())
+  userId        String
+  mealId        String
+  mealName      String   @default("")
+  mealType      String   @default("")
+  quantity      Float
+  date          String
+  totalCalories Float
+  totalProtein  Float
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model WorkoutLog {
+  id             String   @id @default(cuid())
+  userId         String
+  date           String
+  day            String
+  exercises      String
+  durationMin    Float
+  caloriesBurned Float
+  completed      Boolean
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model WaterLog {
+  id           String   @id @default(cuid())
+  userId       String
+  date         String
+  time         String
+  amountMl     Float
+  dailyTotalMl Float?
+  goalMl       Float?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  txId      String
+  type      String
+  category  String
+  amount    Float
+  notes     String   @default("")
+  date      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model GoldEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  entryId   String
+  category  String
+  grams     Float
+  buyPrice  Float
+  date      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DailySummary {
+  id                String   @id @default(cuid())
+  userId            String
+  date              String
+  caloriesConsumed  Float
+  caloriesBurned    Float
+  netCalories       Float
+  waterMl           Float
+  waterGoalMl       Float
+  spend             Float
+  workoutCompleted  Boolean
+  streak            Int
+  completionPercent Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+}

@@ -1,6 +1,6 @@
 import { CommonActions, useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
@@ -35,10 +35,12 @@ export function ProfileScreen() {
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Profile</Text>
       <Card style={styles.profile}>
-        {user?.photoURL ? <Image source={{ uri: user.photoURL }} style={styles.avatar} /> : <View style={styles.avatar}><Text style={styles.initial}>{user?.name?.slice(0, 1) ?? 'S'}</Text></View>}
+        <View style={styles.avatar}>
+          <Text style={styles.initial}>{user?.name?.slice(0, 1) ?? 'S'}</Text>
+        </View>
         <View style={styles.profileText}>
           <Text style={styles.name}>{user?.name ?? 'SyncLife User'}</Text>
-          <Text style={styles.muted}>{user?.email ?? 'Not signed in'}</Text>
+          <Text style={styles.muted}>@{user?.username ?? 'not signed in'}</Text>
         </View>
       </Card>
 

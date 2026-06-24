@@ -1,25 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
-// Augment Express Request to carry the Google OAuth access token
 declare global {
   namespace Express {
     interface Request {
-      accessToken: string;
+      userId: string;
+      username: string;
     }
   }
 }
 
-/**
- * Extracts the Bearer token from the Authorization header and attaches it
- * to req.accessToken. Returns 401 if the header is missing or malformed.
- */
+const JWT_SECRET = process.env.JWT_SECRET ?? 'synclife-dev-secret-change-in-production';
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({
       error: 'Unauthorized',
-      message: 'Missing or invalid Authorization header. Expected: Bearer <google-access-token>'
+      message: 'Missing or invalid Authorization header. Expected: Bearer <token>'
     });
     return;
   }
@@ -27,13 +26,16 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   const token = authHeader.slice(7).trim();
 
   if (!token) {
-    res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Access token is empty.'
-    });
+    res.status(401).json({ error: 'Unauthorized', message: 'Token is empty.' });
     return;
   }
 
-  req.accessToken = token;
-  next();
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: string; username: string };
+    req.userId = payload.userId;
+    req.username = payload.username;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token. Please sign in again.' });
+  }
 }
