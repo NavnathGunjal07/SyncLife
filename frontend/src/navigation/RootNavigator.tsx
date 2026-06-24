@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { colors } from '../constants/theme';
 import { MotivationCallScreen } from '../screens/MotivationCallScreen';
 import { SplashScreen } from '../screens/SplashScreen';
+import { useAuthStore } from '../store/auth';
 import { MotivationType, RootStackParamList } from '../types';
 import { AppNavigator } from './AppNavigator';
 import { AuthNavigator } from './AuthNavigator';
@@ -18,6 +19,15 @@ type Props = {
 };
 
 export function RootNavigator({ onReady }: Props) {
+  // Auth state drives which stack is mounted. When the store changes
+  // (login / register / logout), the correct stack renders automatically —
+  // no imperative navigation required.
+  const hydrated = useAuthStore((state) => state._hydrated);
+  const user = useAuthStore((state) => state.user);
+  const onboardingComplete = useAuthStore((state) => state.onboardingComplete);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const isAuthed = Boolean(user && onboardingComplete && accessToken);
+
   // Call requested before the navigator was ready (cold start from a notification tap)
   const pendingCallType = useRef<MotivationType | null>(null);
 
@@ -74,10 +84,16 @@ export function RootNavigator({ onReady }: Props) {
       }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-        <Stack.Screen name="AppTabs" component={AppNavigator} />
-        <Stack.Screen name="MotivationCall" component={MotivationCallScreen} options={{ animation: 'fade', gestureEnabled: false }} />
+        {!hydrated ? (
+          <Stack.Screen name="Splash" component={SplashScreen} />
+        ) : isAuthed ? (
+          <Stack.Group>
+            <Stack.Screen name="AppTabs" component={AppNavigator} />
+            <Stack.Screen name="MotivationCall" component={MotivationCallScreen} options={{ animation: 'fade', gestureEnabled: false }} />
+          </Stack.Group>
+        ) : (
+          <Stack.Screen name="Auth" component={AuthNavigator} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
