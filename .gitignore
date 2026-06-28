@@ -34,3 +34,5 @@ dist/
 frontend/dist/
 backend/dist/
 web-build/
+builds/
+*.apk

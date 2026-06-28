@@ -28,7 +28,7 @@ npm start                # Expo dev server
 npm run android          # Run on Android device/emulator
 ```
 
-Set `EXPO_PUBLIC_API_BASE_URL` in `frontend/.env` to point to your backend.
+Set `EXPO_PUBLIC_API_URL` in `frontend/.env` to point to your backend.
 
 ## Backend (Node.js / Express)
 
@@ -49,4 +49,4 @@ See [backend/README.md](backend/README.md) for full API documentation.
 | Backend | Render / Railway / Fly.io | `npm run build && npm start` |
 | Frontend | EAS Build → Play Store | `eas build -p android --profile production` |
 
-Set `EXPO_PUBLIC_API_BASE_URL=https://your-backend-domain.com` before building the app.
+Set `EXPO_PUBLIC_API_URL=https://your-backend-domain.com` before building the app.

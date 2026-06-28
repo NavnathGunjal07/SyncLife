@@ -29,21 +29,28 @@ export function RootNavigator({ onReady }: Props) {
   const isAuthed = Boolean(user && onboardingComplete && accessToken);
 
   // Call requested before the navigator was ready (cold start from a notification tap)
-  const pendingCallType = useRef<MotivationType | null>(null);
+  const pendingCall = useRef<{ alarmType: MotivationType; notificationId?: string } | null>(null);
 
-  const openCall = (alarmType: MotivationType) => {
+  const openCall = (alarmType: MotivationType, notificationId?: string) => {
     if (navigationRef.isReady()) {
-      navigationRef.navigate('MotivationCall', { alarmType });
+      navigationRef.navigate('MotivationCall', { alarmType, notificationId });
     } else {
-      pendingCallType.current = alarmType;
+      pendingCall.current = { alarmType, notificationId };
     }
   };
 
   useEffect(() => {
+    const alarmTypeFromNotification = (notification: Notifications.Notification): MotivationType | null => {
+      const data = notification.request.content.data;
+      if (data?.kind !== 'motivation-call') return null;
+      return (data.alarmType as MotivationType) ?? 'gym';
+    };
+
     const handleResponse = (response: Notifications.NotificationResponse | null) => {
-      const data = response?.notification.request.content.data;
-      if (data?.kind === 'motivation-call') {
-        openCall((data.alarmType as MotivationType) ?? 'gym');
+      if (!response) return;
+      const alarmType = alarmTypeFromNotification(response.notification);
+      if (alarmType) {
+        openCall(alarmType, response.notification.request.identifier);
       }
     };
 
@@ -54,10 +61,19 @@ export function RootNavigator({ onReady }: Props) {
       void Notifications.getLastNotificationResponseAsync().then(handleResponse);
     }, 2600);
     // App already running when the notification is tapped
-    const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    // App already open: interrupt the current screen with the incoming-call UI
+    // as soon as the alarm notification is delivered.
+    const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+      const alarmType = alarmTypeFromNotification(notification);
+      if (alarmType) {
+        openCall(alarmType, notification.request.identifier);
+      }
+    });
     return () => {
       clearTimeout(coldStartTimer);
-      subscription.remove();
+      responseSubscription.remove();
+      receivedSubscription.remove();
     };
   }, []);
 
@@ -66,9 +82,9 @@ export function RootNavigator({ onReady }: Props) {
       ref={navigationRef}
       onReady={() => {
         onReady?.();
-        if (pendingCallType.current) {
-          navigationRef.navigate('MotivationCall', { alarmType: pendingCallType.current });
-          pendingCallType.current = null;
+        if (pendingCall.current) {
+          navigationRef.navigate('MotivationCall', pendingCall.current);
+          pendingCall.current = null;
         }
       }}
       theme={{

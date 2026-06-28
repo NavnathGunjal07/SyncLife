@@ -15,9 +15,15 @@
       "android": {
         "buildType": "apk"
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://synclifebackend.vercel.app"
+      }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://synclifebackend.vercel.app"
+      },
       "android": {
         "buildType": "app-bundle"
       }

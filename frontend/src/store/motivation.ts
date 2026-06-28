@@ -2,9 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { DEFAULT_RINGTONE } from '../constants/motivation';
 import { putAlarms } from '../services/api';
 import { rescheduleMotivationCalls } from '../services/notifications';
-import { MotivationAlarm, MotivationType } from '../types';
+import { MotivationAlarm, MotivationType, Ringtone } from '../types';
 import { makeId } from '../utils/date';
 import { useAuthStore } from './auth';
 
@@ -24,12 +25,16 @@ const defaultAlarms: MotivationAlarm[] = [
 
 type MotivationState = {
   alarms: MotivationAlarm[];
+  /** Ringtone played for incoming coach calls (notification + in-app ring). */
+  ringtone: Ringtone;
   /** True when the user denied notification permission on the last schedule attempt */
   permissionDenied: boolean;
   addAlarm: (type: MotivationType, hour: number, minute: number) => Promise<void>;
   toggleAlarm: (id: string) => Promise<void>;
   removeAlarm: (id: string) => Promise<void>;
   updateAlarmTime: (id: string, hour: number, minute: number) => Promise<void>;
+  /** Changes the coach-call ringtone and re-registers the alarms on its channel. */
+  setRingtone: (ringtone: Ringtone) => Promise<void>;
   /** Re-registers OS notifications from the persisted alarms (run on app launch). */
   syncSchedule: () => Promise<void>;
   /** Replaces alarms from the server copy (run during hydration) without pushing back. */
@@ -43,7 +48,7 @@ export const useMotivationStore = create<MotivationState>()(
       const reschedule = async (alarms: MotivationAlarm[]) => {
         set({ alarms });
         try {
-          const granted = await rescheduleMotivationCalls(alarms);
+          const granted = await rescheduleMotivationCalls(alarms, get().ringtone);
           set({ permissionDenied: !granted });
         } catch (error) {
           console.error('[SyncLife] Failed to schedule motivation calls:', error);
@@ -58,6 +63,7 @@ export const useMotivationStore = create<MotivationState>()(
 
       return {
         alarms: defaultAlarms,
+        ringtone: DEFAULT_RINGTONE,
         permissionDenied: false,
 
         addAlarm: (type, hour, minute) => apply([...get().alarms, { id: makeId('alarm'), type, hour, minute, enabled: true }]),
@@ -68,6 +74,12 @@ export const useMotivationStore = create<MotivationState>()(
 
         updateAlarmTime: (id, hour, minute) => apply(get().alarms.map((alarm) => (alarm.id === id ? { ...alarm, hour, minute } : alarm))),
 
+        setRingtone: async (ringtone) => {
+          set({ ringtone });
+          // Re-register so existing alarms move to the new ringtone's channel.
+          await reschedule(get().alarms);
+        },
+
         // Launch-time reschedule only — does not push to the server.
         syncSchedule: () => reschedule(get().alarms),
 
@@ -77,7 +89,7 @@ export const useMotivationStore = create<MotivationState>()(
     {
       name: 'synclife_motivation_alarms',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ alarms: state.alarms }),
+      partialize: (state) => ({ alarms: state.alarms, ringtone: state.ringtone }),
       // After persisted alarms rehydrate on launch, re-register them with the OS.
       // This recovers alarms that were toggled on before the scheduling fix and
       // therefore never actually got scheduled.

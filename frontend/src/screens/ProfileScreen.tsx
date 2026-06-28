@@ -1,6 +1,6 @@
 import { CommonActions, useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
@@ -39,7 +39,18 @@ export function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      style={styles.root}
+    >
+      <ScrollView
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+        style={styles.root}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+      >
       <Text style={styles.title}>Profile</Text>
       <QuoteCard quote={quote} gradient={gradient} variant="compact" label="Keep going" />
       <Card style={styles.profile}>
@@ -81,7 +92,8 @@ export function ProfileScreen() {
           void logout().then(() => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Auth' }] })));
         }}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

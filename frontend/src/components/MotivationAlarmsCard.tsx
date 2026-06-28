@@ -1,13 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
+import { MOTIVATION_META, RINGTONES } from '../constants/motivation';
 import { colors } from '../constants/theme';
+import { previewRingtone, stopRinging } from '../services/motivation';
 import { useMotivationStore } from '../store/motivation';
 import { MotivationType } from '../types';
 import { AppButton } from './AppButton';
 import { Card } from './Card';
 import { Chip } from './Chip';
+
+const ALARM_TYPES: MotivationType[] = ['gym', 'work', 'reminder', 'sleep'];
 
 function formatTime(hour: number, minute: number) {
   const period = hour >= 12 ? 'PM' : 'AM';
@@ -16,16 +20,30 @@ function formatTime(hour: number, minute: number) {
 }
 
 export function MotivationAlarmsCard() {
-  const { alarms, permissionDenied, addAlarm, toggleAlarm, removeAlarm } = useMotivationStore();
+  const { alarms, ringtone, permissionDenied, addAlarm, toggleAlarm, removeAlarm, setRingtone } = useMotivationStore();
   const [newType, setNewType] = useState<MotivationType>('gym');
   const [hourText, setHourText] = useState('7');
   const [minuteText, setMinuteText] = useState('00');
+  const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
   const [adding, setAdding] = useState(false);
 
+  // Stop any preview playback if the card unmounts mid-preview.
+  useEffect(() => () => stopRinging(), []);
+
   const add = async () => {
-    const hour = Number(hourText);
+    const displayHour = Number(hourText);
     const minute = Number(minuteText);
-    if (Number.isNaN(hour) || Number.isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return;
+    if (
+      Number.isNaN(displayHour) ||
+      Number.isNaN(minute) ||
+      displayHour < 1 ||
+      displayHour > 12 ||
+      minute < 0 ||
+      minute > 59
+    ) {
+      return;
+    }
+    const hour = period === 'AM' ? displayHour % 12 : displayHour === 12 ? 12 : displayHour + 12;
     await addAlarm(newType, hour, minute);
     setAdding(false);
   };
@@ -36,15 +54,15 @@ export function MotivationAlarmsCard() {
         <Ionicons name="call" size={20} color={colors.accent} />
         <Text style={styles.title}>AI Coach calls</Text>
       </View>
-      <Text style={styles.description}>Your AI coach calls you like an alarm and talks you into the gym or into deep work.</Text>
+      <Text style={styles.description}>Your AI coach calls you like an alarm and talks you into the gym, deep work, a reminder, or winding down — and you can talk back.</Text>
       {permissionDenied && <Text style={styles.warning}>Notification permission denied — enable it in system settings to receive coach calls.</Text>}
 
       {alarms.map((alarm) => (
         <View key={alarm.id} style={styles.alarmRow}>
-          <Ionicons name={alarm.type === 'gym' ? 'fitness' : 'briefcase'} size={20} color={alarm.enabled ? colors.accent : colors.textMuted} />
+          <Ionicons name={MOTIVATION_META[alarm.type].icon} size={20} color={alarm.enabled ? colors.accent : colors.textMuted} />
           <View style={styles.alarmText}>
             <Text style={[styles.time, !alarm.enabled && styles.disabledText]}>{formatTime(alarm.hour, alarm.minute)}</Text>
-            <Text style={styles.alarmLabel}>{alarm.type === 'gym' ? 'Gym motivation' : 'Work focus'} · daily</Text>
+            <Text style={styles.alarmLabel}>{MOTIVATION_META[alarm.type].subtitle} · daily</Text>
           </View>
           <Switch
             value={alarm.enabled}
@@ -58,18 +76,63 @@ export function MotivationAlarmsCard() {
         </View>
       ))}
 
+      <View style={styles.ringtoneSection}>
+        <View style={styles.ringtoneHeader}>
+          <Ionicons name="musical-notes" size={16} color={colors.accent} />
+          <Text style={styles.ringtoneTitle}>Call ringtone</Text>
+        </View>
+        <View style={styles.chips}>
+          {RINGTONES.map((r) => (
+            <Chip
+              key={r.id}
+              label={r.label}
+              active={ringtone === r.id}
+              onPress={() => {
+                void setRingtone(r.id);
+                void previewRingtone(r.id);
+              }}
+            />
+          ))}
+        </View>
+        <Pressable style={styles.previewRow} hitSlop={6} onPress={() => void previewRingtone(ringtone)}>
+          <Ionicons name="play-circle" size={18} color={colors.accent} />
+          <Text style={styles.previewText}>Preview</Text>
+        </Pressable>
+      </View>
+
       {adding ? (
         <View style={styles.addForm}>
           <View style={styles.chips}>
-            <Chip label="Gym" active={newType === 'gym'} onPress={() => setNewType('gym')} />
-            <Chip label="Work" active={newType === 'work'} onPress={() => setNewType('work')} />
+            {ALARM_TYPES.map((type) => (
+              <Chip key={type} label={MOTIVATION_META[type].label} active={newType === type} onPress={() => setNewType(type)} />
+            ))}
           </View>
           <View style={styles.timeInputs}>
-            <TextInput value={hourText} onChangeText={setHourText} keyboardType="numeric" maxLength={2} style={styles.timeInput} placeholder="HH" placeholderTextColor={colors.textMuted} />
+            <TextInput
+              value={hourText}
+              onChangeText={(text) => setHourText(text.replace(/[^0-9]/g, ''))}
+              keyboardType="numeric"
+              maxLength={2}
+              style={styles.timeInput}
+              placeholder="HH"
+              placeholderTextColor={colors.textMuted}
+            />
             <Text style={styles.colon}>:</Text>
-            <TextInput value={minuteText} onChangeText={setMinuteText} keyboardType="numeric" maxLength={2} style={styles.timeInput} placeholder="MM" placeholderTextColor={colors.textMuted} />
-            <Text style={styles.hint}>24-hour time</Text>
+            <TextInput
+              value={minuteText}
+              onChangeText={(text) => setMinuteText(text.replace(/[^0-9]/g, ''))}
+              keyboardType="numeric"
+              maxLength={2}
+              style={styles.timeInput}
+              placeholder="MM"
+              placeholderTextColor={colors.textMuted}
+            />
+            <View style={styles.periodToggle}>
+              <Chip label="AM" active={period === 'AM'} onPress={() => setPeriod('AM')} />
+              <Chip label="PM" active={period === 'PM'} onPress={() => setPeriod('PM')} />
+            </View>
           </View>
+          <Text style={styles.hint}>Use 12-hour time, for example 7:30 AM or 6:00 PM.</Text>
           <AppButton label="Save alarm" icon="checkmark" onPress={() => void add()} />
         </View>
       ) : (
@@ -91,8 +154,13 @@ const styles = StyleSheet.create({
   disabledText: { color: colors.textMuted },
   alarmLabel: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   addForm: { gap: 12 },
-  chips: { flexDirection: 'row', gap: 8 },
-  timeInputs: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  ringtoneSection: { borderTopColor: colors.border, borderTopWidth: 1, gap: 10, paddingTop: 14 },
+  ringtoneHeader: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  ringtoneTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  previewRow: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 6 },
+  previewText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  timeInputs: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timeInput: {
     backgroundColor: colors.surfaceAlt,
     borderColor: colors.border,
@@ -106,5 +174,6 @@ const styles = StyleSheet.create({
     width: 64
   },
   colon: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  hint: { color: colors.textMuted, fontSize: 12 }
+  periodToggle: { flexDirection: 'row', gap: 8 },
+  hint: { color: colors.textMuted, fontSize: 12, lineHeight: 16 }
 });

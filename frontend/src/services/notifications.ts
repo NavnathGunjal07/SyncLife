@@ -2,17 +2,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { CALL_BODY, COACH_NAME } from '../constants/motivation';
+import { CALL_BODY, COACH_NAME, DEFAULT_RINGTONE, RINGTONES, ringtoneFile } from '../constants/motivation';
 import { getRandomQuote } from '../constants/quotes';
-import { MotivationAlarm } from '../types';
+import { MotivationAlarm, Ringtone } from '../types';
 
 const DAILY_IDS_KEY = 'synclife_daily_notification_ids';
 const MOTIVATION_IDS_KEY = 'synclife_motivation_notification_ids';
 
-/** High-importance Android channel so coach calls ring + show as a heads-up. */
-const CALL_CHANNEL_ID = 'motivation-calls';
+// An Android notification channel's sound is immutable after creation, so we
+// keep one high-importance channel PER ringtone and schedule calls on the
+// channel that matches the user's choice. Bump the version to force-recreate
+// channels if their config ever changes.
+const CALL_CHANNEL_VERSION = 'v3';
+const callChannelId = (ringtone: Ringtone) => `motivation-call-${ringtone}-${CALL_CHANNEL_VERSION}`;
 /** Default channel for the silent daily tracking reminders. */
 const REMINDER_CHANNEL_ID = 'daily-reminders';
+const CALL_VIBRATION_PATTERN = [0, 900, 450, 900, 450, 1200];
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -23,7 +28,8 @@ Notifications.setNotificationHandler({
       shouldSetBadge: false,
       // SDK 54 replaced the deprecated `shouldShowAlert` with these two fields.
       shouldShowBanner: true,
-      shouldShowList: true
+      shouldShowList: true,
+      priority: isCall ? Notifications.AndroidNotificationPriority.MAX : Notifications.AndroidNotificationPriority.DEFAULT
     };
   }
 });
@@ -36,15 +42,25 @@ Notifications.setNotificationHandler({
  */
 export async function ensureAndroidChannelsAsync() {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(CALL_CHANNEL_ID, {
-    name: 'Coach calls',
-    importance: Notifications.AndroidImportance.MAX,
-    sound: 'default',
-    vibrationPattern: [0, 800, 400, 800],
-    enableVibrate: true,
-    bypassDnd: false,
-    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC
-  });
+  // One alarm channel per ringtone — each rings with its own bundled sound so
+  // the coach call is audible even when the app is backgrounded or killed.
+  await Promise.all(
+    RINGTONES.map((r) =>
+      Notifications.setNotificationChannelAsync(callChannelId(r.id), {
+        name: `AI coach calls — ${r.label}`,
+        importance: Notifications.AndroidImportance.MAX,
+        sound: r.file,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.ALARM,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION
+        },
+        vibrationPattern: CALL_VIBRATION_PATTERN,
+        enableVibrate: true,
+        bypassDnd: false,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC
+      })
+    )
+  );
   await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
     name: 'Daily reminders',
     importance: Notifications.AndroidImportance.DEFAULT
@@ -108,7 +124,7 @@ export async function scheduleDailyNotifications() {
  * scheduled calls first, then schedules one daily repeating notification per
  * enabled alarm. Returns false when notification permission was denied.
  */
-export async function rescheduleMotivationCalls(alarms: MotivationAlarm[]) {
+export async function rescheduleMotivationCalls(alarms: MotivationAlarm[], ringtone: Ringtone = DEFAULT_RINGTONE) {
   await cancelTrackedNotifications(MOTIVATION_IDS_KEY);
 
   const enabled = alarms.filter((alarm) => alarm.enabled);
@@ -118,6 +134,9 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[]) {
   if (!granted) return false;
 
   await ensureAndroidChannelsAsync();
+
+  const channelId = callChannelId(ringtone);
+  const soundFile = ringtoneFile(ringtone);
 
   // DAILY trigger so the coach calls every day at the chosen time. (The bare
   // `{ hour, minute, repeats }` shorthand is an iOS-only CALENDAR trigger and
@@ -129,14 +148,19 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[]) {
         content: {
           title: `📞 Incoming call: ${COACH_NAME}`,
           body: `${CALL_BODY[alarm.type]}\n\n"${quote.text}" — ${quote.author}`,
-          sound: 'default',
+          sound: soundFile,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          vibrate: CALL_VIBRATION_PATTERN,
+          autoDismiss: false,
+          sticky: true,
+          color: '#1FD67E',
           data: { kind: 'motivation-call', alarmId: alarm.id, alarmType: alarm.type }
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: alarm.hour,
           minute: alarm.minute,
-          channelId: CALL_CHANNEL_ID
+          channelId
         }
       });
     })

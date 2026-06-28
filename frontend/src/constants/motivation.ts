@@ -1,10 +1,45 @@
-import { MotivationType } from '../types';
+import { Ionicons } from '@expo/vector-icons';
+
+import { MotivationType, Ringtone } from '../types';
 
 export const COACH_NAME = 'SyncLife Coach';
 
+// ─── Ringtones ────────────────────────────────────────────────────────────────
+// The bundled WAVs do double duty: expo-audio loops them in-app on the ringing
+// call screen, and the Android notification channels reference them by filename.
+
+export const DEFAULT_RINGTONE: Ringtone = 'classic';
+
+export const RINGTONES: { id: Ringtone; label: string; file: string }[] = [
+  { id: 'classic', label: 'Classic alarm', file: 'alarm_classic.wav' },
+  { id: 'gentle', label: 'Gentle chime', file: 'alarm_gentle.wav' },
+  { id: 'digital', label: 'Digital', file: 'alarm_digital.wav' }
+];
+
+/** Static require() map so Metro bundles each ringtone (dynamic require fails). */
+export const RINGTONE_SOURCES: Record<Ringtone, number> = {
+  classic: require('../../assets/sounds/alarm_classic.wav'),
+  gentle: require('../../assets/sounds/alarm_gentle.wav'),
+  digital: require('../../assets/sounds/alarm_digital.wav')
+};
+
+export function ringtoneFile(ringtone: Ringtone): string {
+  return RINGTONES.find((r) => r.id === ringtone)?.file ?? 'alarm_classic.wav';
+}
+
 export const CALL_BODY: Record<MotivationType, string> = {
   gym: 'Your coach is calling — time to train. Tap to answer 💪',
-  work: 'Your coach is calling — time to get to work. Tap to answer 🚀'
+  work: 'Your coach is calling — time to get to work. Tap to answer 🚀',
+  reminder: 'Your coach is calling — quick reminder for you. Tap to answer ⏰',
+  sleep: 'Your coach is calling — time to wind down. Tap to answer 🌙'
+};
+
+/** UI metadata for each call type (used by the alarms card and call screen). */
+export const MOTIVATION_META: Record<MotivationType, { label: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  gym: { label: 'Gym', subtitle: 'Workout motivation call', icon: 'fitness' },
+  work: { label: 'Work', subtitle: 'Work focus call', icon: 'briefcase' },
+  reminder: { label: 'Reminder', subtitle: 'Reminder call', icon: 'alarm' },
+  sleep: { label: 'Sleep', subtitle: 'Wind-down call', icon: 'moon' }
 };
 
 /** Offline / no-backend fallback messages, spoken by the coach on the call screen. */
@@ -28,6 +63,18 @@ export const MOTIVATION_BANK: Record<MotivationType, string[]> = {
     'Procrastination is just fear in comfortable clothes. You are more capable than the task is hard. Start small, start now.',
     'Imagine ending today knowing you did the hard thing first. That feeling is twenty five focused minutes away. Begin.',
     'Your goals do not care about your mood, but they respond beautifully to your actions. Take action now — start the most important task on your list.'
+  ],
+  reminder: [
+    'This is your coach with a quick nudge. You set this reminder for a reason, and that reason still matters. Take two minutes and handle it now before it slips away.',
+    'Hey, this is the thing you promised yourself you would do. Future you is counting on present you. Knock it out now and feel the weight lift off your shoulders.',
+    'Small tasks become big stress when we wait. This one is small. Do it right now while it is in front of you, and you will be done before you know it.',
+    'You asked me to remind you, so here I am. One quick action closes this loop. Let us take care of it together — start now.'
+  ],
+  sleep: [
+    'This is your coach. The most powerful thing you can do for tomorrow is rest tonight. Screens down, lights low, and let your body recover. Sleep is training too.',
+    'Champions are made in recovery as much as in effort. Wind down now — put the phone on charge across the room and give yourself a full night of sleep.',
+    'Your brain and muscles repair while you sleep. Skipping it steals from tomorrow. Close the day proud, breathe slow, and head to bed now.',
+    'The day is done and you showed up. Now protect your energy for tomorrow. Dim the lights, set your alarm, and let yourself rest.'
   ]
 };
 
@@ -37,4 +84,16 @@ export function pickLocalMessage(type: MotivationType, name?: string, streakDays
   const greeting = name ? `${name.split(' ')[0]}, ` : '';
   const streakLine = streakDays && streakDays > 1 ? ` You are on a ${streakDays} day streak — do not break it today.` : '';
   return `${greeting}${base}${streakLine}`;
+}
+
+/** Encouraging local reply when the user talks back and the backend is unreachable. */
+export function pickLocalReply(type: MotivationType, name?: string): string {
+  const greeting = name ? `${name.split(' ')[0]}, ` : '';
+  const lines: Record<MotivationType, string> = {
+    gym: `${greeting}I hear you — but you do not have to feel ready, you just have to start. Do the first five minutes and let momentum take over. Shoes on, let us go.`,
+    work: `${greeting}totally fair. Forget the whole thing — just open it and set a five minute timer. Starting is the hard part, and you are about to win it.`,
+    reminder: `${greeting}I get it, life is busy. This one is quick though. Take two minutes right now and close the loop — you will feel lighter the moment it is done.`,
+    sleep: `${greeting}I know it is tempting to push on, but rest is how you win tomorrow. Put the screen down, dim the lights, and give yourself a proper night.`
+  };
+  return lines[type];
 }

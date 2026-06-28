@@ -20,16 +20,38 @@
     ],
     "android": {
       "package": "com.synclife.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
       },
       "permissions": [
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_FULL_SCREEN_INTENT",
+        "RECORD_AUDIO"
       ]
     },
     "plugins": [
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/alarm_classic.wav",
+            "./assets/sounds/alarm_gentle.wav",
+            "./assets/sounds/alarm_digital.wav"
+          ]
+        }
+      ],
+      "expo-audio",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "SyncLife uses the microphone so you can talk back to your AI coach on a call.",
+          "speechRecognitionPermission": "SyncLife uses speech recognition to understand your replies during coach calls."
+        }
+      ]
     ],
     "owner": "sidharth_gunjal",
     "extra": {

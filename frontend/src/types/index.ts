@@ -139,7 +139,10 @@ export interface QueuedWrite {
   attempts: number;
 }
 
-export type MotivationType = 'gym' | 'work';
+export type MotivationType = 'gym' | 'work' | 'reminder' | 'sleep';
+
+/** Built-in coach-call ringtones (bundled WAVs in assets/sounds). */
+export type Ringtone = 'classic' | 'gentle' | 'digital';
 
 export interface MotivationAlarm {
   id: string;
@@ -199,7 +202,7 @@ export type RootStackParamList = {
   Splash: undefined;
   Auth: undefined;
   AppTabs: undefined;
-  MotivationCall: { alarmType: MotivationType };
+  MotivationCall: { alarmType: MotivationType; notificationId?: string };
 };
 
 export type AppTabParamList = {
