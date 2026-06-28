@@ -334,3 +334,162 @@ export async function replaceMotivationAlarms(userId: string, alarms: Motivation
   ]);
   return getMotivationAlarms(userId);
 }
+
+// ─── Profile partial updates (used by assistant tools) ────────────────────────
+
+export interface ProfilePatch {
+  weightKg?: number;
+  heightCm?: number;
+  fitnessGoal?: string;
+  calorieTarget?: number;
+  waterGoalMl?: number;
+  waterGoalMode?: string;
+  monthlyBudget?: number;
+  bmi?: number;
+  sleepTime?: string | null;
+  gymTime?: string | null;
+  runningTime?: string | null;
+  fastingPlan?: string;
+  setupComplete?: boolean;
+}
+
+// Patch only the provided fields. Ensures a profile row exists first (older
+// users, or any edge where one is missing).
+export async function patchUserProfile(userId: string, patch: ProfilePatch) {
+  await prisma.userProfile.upsert({
+    where: { userId },
+    update: {},
+    create: { userId }
+  });
+  return prisma.userProfile.update({ where: { userId }, data: patch });
+}
+
+// ─── Chat Messages ────────────────────────────────────────────────────────────
+
+export interface ChatMessageInput {
+  role: string;
+  content: string;
+  kind?: string;
+  data?: unknown;
+}
+
+export function createChatMessage(userId: string, msg: ChatMessageInput) {
+  return prisma.chatMessage.create({
+    data: {
+      userId,
+      role: msg.role,
+      content: msg.content,
+      kind: msg.kind ?? 'text',
+      data: (msg.data ?? undefined) as never
+    }
+  });
+}
+
+// Most recent messages, returned oldest-first for display / model context.
+export async function getRecentChatMessages(userId: string, limit = 30) {
+  const rows = await prisma.chatMessage.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit
+  });
+  return rows.reverse();
+}
+
+// ─── Long-term Memory ─────────────────────────────────────────────────────────
+
+const MEMORY_CAP = 50;
+const MEMORY_AUTO_SAVE_AT = 3;
+
+export interface ProposeMemoryResult {
+  saved: boolean;
+  // True when this call promoted a candidate to saved (frequency threshold hit).
+  autoSaved: boolean;
+  memory: { id: string; content: string; frequency: number; status: string };
+}
+
+/**
+ * Records a memory candidate. Repeat proposals of the same content increment
+ * frequency; once it recurs MEMORY_AUTO_SAVE_AT times it is auto-saved. New
+ * facts stay "candidate" until the user confirms.
+ */
+export async function proposeMemory(
+  userId: string,
+  content: string,
+  category = 'general'
+): Promise<ProposeMemoryResult> {
+  const existing = await prisma.chatMemory.findUnique({
+    where: { userId_content: { userId, content } }
+  });
+
+  const record = existing
+    ? await prisma.chatMemory.update({
+        where: { userId_content: { userId, content } },
+        data: { frequency: { increment: 1 }, lastUsedAt: new Date() }
+      })
+    : await prisma.chatMemory.create({ data: { userId, content, category } });
+
+  let status = record.status;
+  let autoSaved = false;
+  if (status !== 'saved' && record.frequency >= MEMORY_AUTO_SAVE_AT) {
+    await prisma.chatMemory.update({ where: { id: record.id }, data: { status: 'saved' } });
+    status = 'saved';
+    autoSaved = true;
+  }
+
+  if (status === 'saved') await evictMemoriesToCap(userId);
+
+  return {
+    saved: status === 'saved',
+    autoSaved,
+    memory: { id: record.id, content: record.content, frequency: record.frequency, status }
+  };
+}
+
+export async function confirmMemory(userId: string, id: string) {
+  const updated = await prisma.chatMemory.updateMany({
+    where: { id, userId },
+    data: { status: 'saved', lastUsedAt: new Date() }
+  });
+  await evictMemoriesToCap(userId);
+  return updated.count > 0;
+}
+
+export function getSavedMemories(userId: string) {
+  return prisma.chatMemory.findMany({
+    where: { userId, status: 'saved' },
+    orderBy: [{ frequency: 'desc' }, { lastUsedAt: 'desc' }]
+  });
+}
+
+export async function deleteMemory(userId: string, id: string) {
+  const res = await prisma.chatMemory.deleteMany({ where: { id, userId } });
+  return res.count > 0;
+}
+
+// Keep saved memories within MEMORY_CAP, dropping the least-used (lowest
+// frequency, then oldest) first.
+async function evictMemoriesToCap(userId: string) {
+  const saved = await prisma.chatMemory.findMany({
+    where: { userId, status: 'saved' },
+    orderBy: [{ frequency: 'asc' }, { lastUsedAt: 'asc' }]
+  });
+  if (saved.length <= MEMORY_CAP) return;
+  const toDrop = saved.slice(0, saved.length - MEMORY_CAP).map((m) => m.id);
+  await prisma.chatMemory.deleteMany({ where: { id: { in: toDrop } } });
+}
+
+// ─── Context gather (for the assistant system prompt) ─────────────────────────
+
+export async function getTodayTotals(userId: string, date: string) {
+  const [meals, water, workouts] = await Promise.all([
+    prisma.mealLog.findMany({ where: { userId, date } }),
+    prisma.waterLog.findMany({ where: { userId, date } }),
+    prisma.workoutLog.findMany({ where: { userId, date } })
+  ]);
+  return {
+    caloriesConsumed: meals.reduce((s, m) => s + m.totalCalories, 0),
+    proteinConsumed: meals.reduce((s, m) => s + m.totalProtein, 0),
+    waterMl: water.reduce((s, w) => s + w.amountMl, 0),
+    workoutCompleted: workouts.some((w) => w.completed)
+  };
+}

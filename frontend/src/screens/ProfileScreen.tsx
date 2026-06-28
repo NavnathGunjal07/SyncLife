@@ -8,8 +8,10 @@ import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
 import { MotivationAlarmsCard } from '../components/MotivationAlarmsCard';
+import { SavedMemoriesCard } from '../components/SavedMemoriesCard';
 import { colors } from '../constants/theme';
 import { useAuthStore } from '../store/auth';
+import { useChatStore } from '../store/chat';
 import { UserProfile } from '../types';
 
 const goals: UserProfile['fitnessGoal'][] = ['Lose weight', 'Maintain', 'Build muscle'];
@@ -63,12 +65,15 @@ export function ProfileScreen() {
 
       <MotivationAlarmsCard />
 
+      <SavedMemoriesCard />
+
       <AppButton label="Sync now" icon="sync" onPress={() => void sync()} />
       <AppButton
         label="Logout"
         icon="log-out"
         variant="outline"
         onPress={() => {
+          useChatStore.getState().reset();
           void logout().then(() => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Auth' }] })));
         }}
       />

@@ -1,4 +1,16 @@
-import { DailySummary, GoldEntry, MealLog, MotivationAlarm, Transaction, WaterLog, WorkoutLog } from '../types';
+import {
+  ChatSession,
+  ChatTurnResult,
+  DailySummary,
+  GoldEntry,
+  MealLog,
+  MotivationAlarm,
+  SavedMemory,
+  Transaction,
+  WaterLog,
+  WorkoutLog
+} from '../types';
+import { ChatMessage as ChatMessageType } from '../types';
 import { UserProfile } from '../types';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3001';
@@ -182,4 +194,47 @@ export function putAlarms(token: string, alarms: MotivationAlarm[]) {
     method: 'PUT',
     body: JSON.stringify({ alarms })
   });
+}
+
+// ─── AI Assistant Chat ────────────────────────────────────────────────────────
+
+export function sendChat(token: string, message: string, date: string) {
+  return apiRequest<ChatTurnResult>('/api/chat', token, {
+    method: 'POST',
+    body: JSON.stringify({ message, date })
+  });
+}
+
+export function fetchChatSession(token: string, date: string) {
+  return apiRequest<ChatSession>(`/api/chat/session?date=${date}`, token);
+}
+
+export interface StoredChatMessage {
+  id: string;
+  role: string;
+  content: string;
+  kind: string;
+  data: { cards?: ChatMessageType['cards']; options?: string[] };
+  createdAt: string;
+}
+
+export function fetchChatHistory(token: string, limit = 40) {
+  return apiRequest<{ messages: StoredChatMessage[] }>(`/api/chat/history?limit=${limit}`, token);
+}
+
+// ─── Long-term Memory ─────────────────────────────────────────────────────────
+
+export function fetchMemory(token: string) {
+  return apiRequest<{ memories: SavedMemory[] }>('/api/memory', token);
+}
+
+export function confirmMemory(token: string, id: string) {
+  return apiRequest<{ success: boolean }>('/api/memory/confirm', token, {
+    method: 'POST',
+    body: JSON.stringify({ id })
+  });
+}
+
+export function deleteMemory(token: string, id: string) {
+  return apiRequest<{ success: boolean }>(`/api/memory/${id}`, token, { method: 'DELETE' });
 }

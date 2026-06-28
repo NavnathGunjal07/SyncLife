@@ -128,6 +128,50 @@ export interface MotivationAlarm {
   enabled: boolean;
 }
 
+// ─── AI Assistant chat ──────────────────────────────────────────────────────
+
+export type ChatCard =
+  | { type: 'meal_logged'; name: string; mealType: string; calories: number; protein: number; quantity: number }
+  | { type: 'exercise'; name: string; detail: string }
+  | { type: 'workout_complete'; exercises: string[]; caloriesBurned: number; durationMin: number }
+  | { type: 'water_logged'; amountMl: number; totalMl: number }
+  | { type: 'transaction'; txType: string; category: string; amount: number }
+  | { type: 'gold'; category: string; grams: number; buyPrice: number }
+  | { type: 'profile_updated'; fields: Record<string, unknown> }
+  | { type: 'plan'; bmi: number; goal: string; fastingPlan: string; summary: string }
+  | { type: 'memory_prompt'; id: string; content: string };
+
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  cards: ChatCard[];
+  options: string[];
+}
+
+export interface ChatTurnResult {
+  message: string;
+  cards: ChatCard[];
+  options: string[];
+  refresh: string[];
+}
+
+export interface ChatSession {
+  setupComplete: boolean;
+  message: string;
+  options: string[];
+  cards: ChatCard[];
+}
+
+export interface SavedMemory {
+  id: string;
+  content: string;
+  category: string;
+  frequency: number;
+}
+
 export type RootStackParamList = {
   Splash: undefined;
   Auth: undefined;
@@ -138,6 +182,7 @@ export type RootStackParamList = {
 export type AppTabParamList = {
   Home: undefined;
   Meals: undefined;
+  Assistant: undefined;
   Workout: undefined;
   Finance: undefined;
   Profile: undefined;

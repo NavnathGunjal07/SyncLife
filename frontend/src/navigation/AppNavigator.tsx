@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BottomTabNavigationOptions, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBarButtonProps, BottomTabNavigationOptions, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors } from '../constants/theme';
 import { hydrateAll } from '../services/bootstrap';
+import { AssistantScreen } from '../screens/AssistantScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { FinanceScreen } from '../screens/FinanceScreen';
 import { MealsScreen } from '../screens/MealsScreen';
@@ -33,10 +35,43 @@ function HomeNavigator() {
 const icons: Record<keyof AppTabParamList, keyof typeof Ionicons.glyphMap> = {
   Home: 'home',
   Meals: 'restaurant',
+  Assistant: 'sparkles',
   Workout: 'fitness',
   Finance: 'wallet',
   Profile: 'person'
 };
+
+// Raised, highlighted center button for the Assistant tab.
+function AssistantTabButton({ children, onPress, accessibilityState }: BottomTabBarButtonProps) {
+  const focused = accessibilityState?.selected;
+  return (
+    <View style={tabStyles.centerWrap}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={[tabStyles.centerButton, focused && tabStyles.centerButtonActive]}
+      >
+        {children}
+      </Pressable>
+    </View>
+  );
+}
+
+const tabStyles = StyleSheet.create({
+  centerWrap: { alignItems: 'center', justifyContent: 'center', width: 64 },
+  centerButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderColor: colors.background,
+    borderRadius: 30,
+    borderWidth: 4,
+    height: 60,
+    justifyContent: 'center',
+    marginBottom: 18,
+    width: 60
+  },
+  centerButtonActive: { backgroundColor: colors.accentMuted }
+});
 
 export function AppNavigator() {
   // Pull persisted data back into the stores once the authed app mounts (covers
@@ -47,6 +82,7 @@ export function AppNavigator() {
 
   return (
     <Tab.Navigator
+      initialRouteName="Assistant"
       screenOptions={({ route }: { route: { name: keyof AppTabParamList } }): BottomTabNavigationOptions => ({
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
@@ -57,6 +93,15 @@ export function AppNavigator() {
     >
       <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Meals" component={MealsScreen} />
+      <Tab.Screen
+        name="Assistant"
+        component={AssistantScreen}
+        options={{
+          tabBarLabel: () => null,
+          tabBarButton: (props: BottomTabBarButtonProps) => <AssistantTabButton {...props} />,
+          tabBarIcon: () => <Ionicons name="sparkles" size={26} color={colors.background} />
+        }}
+      />
       <Tab.Screen name="Workout" component={WorkoutScreen} />
       <Tab.Screen name="Finance" component={FinanceScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />

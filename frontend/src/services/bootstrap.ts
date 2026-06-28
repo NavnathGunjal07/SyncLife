@@ -153,3 +153,55 @@ export function hydrateAll(): Promise<void> {
   });
   return inFlight;
 }
+
+/**
+ * Refresh only the named domains from the backend. Used after the AI assistant
+ * performs an action so the affected screen reflects the change immediately.
+ */
+export async function refreshDomains(domains: string[]): Promise<void> {
+  const token = useAuthStore.getState().accessToken;
+  if (!token) return;
+  const today = toISODate();
+  const now = new Date();
+  const unique = [...new Set(domains)];
+  await Promise.all(
+    unique.map(async (domain) => {
+      try {
+        switch (domain) {
+          case 'meals': {
+            const { logs } = await fetchMealLogs(token, today);
+            useMealsStore.getState().setLogs(logs);
+            break;
+          }
+          case 'water': {
+            const { logs } = await fetchWaterLogs(token, today);
+            useWaterStore.getState().setLogs(logs);
+            break;
+          }
+          case 'workout': {
+            const { logs } = await fetchWorkoutHistory(token);
+            useWorkoutStore.getState().setLogs([...logs].reverse());
+            break;
+          }
+          case 'finance': {
+            const { transactions } = await fetchTransactions(token, now.getFullYear(), now.getMonth() + 1);
+            useFinanceStore.getState().setTransactions(transactions);
+            break;
+          }
+          case 'gold': {
+            const { entries } = await fetchGoldEntries(token);
+            useGoldStore.getState().setEntries(entries);
+            break;
+          }
+          case 'profile': {
+            const { profile } = await fetchGoals(token);
+            if (profile) useAuthStore.getState().hydrateProfile(pickProfile(profile));
+            break;
+          }
+        }
+      } catch {
+        // best-effort refresh
+      }
+    })
+  );
+}

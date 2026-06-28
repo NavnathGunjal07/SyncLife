@@ -28,6 +28,8 @@ model User {
   goldEntries  GoldEntry[]
   summaries    DailySummary[]
   alarms       MotivationAlarm[]
+  chatMessages ChatMessage[]
+  memories     ChatMemory[]
 }
 
 model UserProfile {
@@ -43,6 +45,13 @@ model UserProfile {
   // Daily-login streak persisted server-side so it survives reinstall/logout.
   streak         Int      @default(0)
   lastActiveDate String   @default("")
+  // AI-assistant onboarding + derived plan.
+  setupComplete  Boolean  @default(false)
+  bmi            Float?
+  sleepTime      String?
+  gymTime        String?
+  runningTime    String?
+  fastingPlan    String   @default("none")
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -167,4 +176,38 @@ model MotivationAlarm {
 
   @@unique([userId, alarmId])
   @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String // user | assistant | tool
+  content   String
+  // kind drives client rendering: text | cards | options | memory
+  kind      String   @default("text")
+  // Structured payload for cards/options/tool results.
+  data      Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model ChatMemory {
+  id         String   @id @default(cuid())
+  userId     String
+  content    String
+  category   String   @default("general")
+  // Frequency-based promotion: candidate → saved at >= 3 occurrences.
+  frequency  Int      @default(1)
+  status     String   @default("candidate") // candidate | saved
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, content])
+  @@index([userId, status])
 }
