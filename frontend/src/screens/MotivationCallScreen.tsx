@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
 
 import { COACH_NAME } from '../constants/motivation';
+import { getRandomQuote } from '../constants/quotes';
 import { colors } from '../constants/theme';
 import { getMotivationMessage, speakMessage, stopSpeaking } from '../services/motivation';
 import { useAuthStore } from '../store/auth';
@@ -21,6 +22,7 @@ export function MotivationCallScreen({ navigation, route }: Props) {
   const [source, setSource] = useState<'ai' | 'local'>('local');
   const [speaking, setSpeaking] = useState(false);
   const pulse = useRef(new Animated.Value(1)).current;
+  const quote = useRef(getRandomQuote()).current;
 
   // Ring: vibrate + pulse the avatar until answered or declined
   useEffect(() => {
@@ -94,6 +96,10 @@ export function MotivationCallScreen({ navigation, route }: Props) {
           <Text style={styles.source}>
             {speaking ? '🔊 Coach is speaking…' : source === 'ai' ? 'Personalized by AI' : 'From your coach playbook'}
           </Text>
+          <View style={styles.quoteBox}>
+            <Text style={styles.quoteText}>“{quote.text}”</Text>
+            <Text style={styles.quoteAuthor}>— {quote.author}</Text>
+          </View>
         </ScrollView>
       )}
 
@@ -169,6 +175,15 @@ const styles = StyleSheet.create({
   messageContainer: { gap: 16, paddingHorizontal: 24, paddingVertical: 16 },
   message: { color: colors.text, fontSize: 19, fontWeight: '600', lineHeight: 30, textAlign: 'center' },
   source: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
+  quoteBox: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 16
+  },
+  quoteText: { color: colors.accent, fontSize: 15, fontStyle: 'italic', lineHeight: 22, textAlign: 'center' },
+  quoteAuthor: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   actions: { flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 24 },
   callButtonWrap: { alignItems: 'center', gap: 8 },
   callButton: { alignItems: 'center', borderRadius: 36, height: 72, justifyContent: 'center', width: 72 },

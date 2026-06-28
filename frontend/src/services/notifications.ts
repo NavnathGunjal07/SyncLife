@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { CALL_BODY, COACH_NAME } from '../constants/motivation';
+import { getRandomQuote } from '../constants/quotes';
 import { MotivationAlarm } from '../types';
 
 const DAILY_IDS_KEY = 'synclife_daily_notification_ids';
@@ -89,7 +90,7 @@ export async function scheduleDailyNotifications() {
   const ids = await Promise.all(
     dailyReminders.map((reminder) =>
       Notifications.scheduleNotificationAsync({
-        content: { title: 'SyncLife', body: reminder.body },
+        content: { title: 'SyncLife', body: `${reminder.body}\n\n💡 ${getRandomQuote().text}` },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: reminder.hour,
@@ -122,11 +123,12 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[]) {
   // `{ hour, minute, repeats }` shorthand is an iOS-only CALENDAR trigger and
   // throws on Android — which is why no calls were ever firing.)
   const ids = await Promise.all(
-    enabled.map((alarm) =>
-      Notifications.scheduleNotificationAsync({
+    enabled.map((alarm) => {
+      const quote = getRandomQuote();
+      return Notifications.scheduleNotificationAsync({
         content: {
           title: `📞 Incoming call: ${COACH_NAME}`,
-          body: CALL_BODY[alarm.type],
+          body: `${CALL_BODY[alarm.type]}\n\n"${quote.text}" — ${quote.author}`,
           sound: 'default',
           data: { kind: 'motivation-call', alarmId: alarm.id, alarmType: alarm.type }
         },
@@ -136,8 +138,8 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[]) {
           minute: alarm.minute,
           channelId: CALL_CHANNEL_ID
         }
-      })
-    )
+      });
+    })
   );
   await AsyncStorage.setItem(MOTIVATION_IDS_KEY, JSON.stringify(ids));
   return true;

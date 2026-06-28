@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/core';
 import { useEffect, useState } from 'react';
 import {
   FlatList,
@@ -23,13 +24,17 @@ import { ChatMessage } from '../types';
 
 export function AssistantScreen() {
   const insets = useSafeAreaInsets();
-  const { messages, loading, startSession, send, confirmMemoryCard } = useChatStore();
+  const navigation = useNavigation();
+  const { messages, loading, openChat, send, confirmMemoryCard } = useChatStore();
   const [input, setInput] = useState('');
   const [detail, setDetail] = useState<{ name: string; detail: string } | null>(null);
 
+  // Greet on first mount and on every focus so the coach speaks first (fresh quote).
   useEffect(() => {
-    void startSession();
-  }, [startSession]);
+    void openChat();
+    const unsubscribe = navigation.addListener('focus', () => void openChat());
+    return unsubscribe;
+  }, [navigation, openChat]);
 
   const submit = () => {
     const text = input.trim();

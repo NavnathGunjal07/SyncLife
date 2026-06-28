@@ -7,6 +7,7 @@ import {
   sendChat
 } from '../services/api';
 import { refreshDomains } from '../services/bootstrap';
+import { getRandomQuote } from '../constants/quotes';
 import { ChatMessage, ChatRole } from '../types';
 import { makeId, toISODate } from '../utils/date';
 import { useAuthStore } from './auth';
@@ -15,10 +16,17 @@ type ChatState = {
   messages: ChatMessage[];
   loading: boolean;
   started: boolean;
-  startSession: () => Promise<void>;
+  /** Loads history (once) then drops a fresh AI greeting — call on every open. */
+  openChat: () => Promise<void>;
+  greet: () => Promise<void>;
   send: (text: string) => Promise<void>;
   confirmMemoryCard: (messageId: string, memoryId: string) => Promise<void>;
   reset: () => void;
+};
+
+const quoteLine = () => {
+  const q = getRandomQuote();
+  return `\n\n“${q.text}” — ${q.author}`;
 };
 
 const userMsg = (content: string): ChatMessage => ({
@@ -34,53 +42,64 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loading: false,
   started: false,
 
-  startSession: async () => {
-    if (get().started) return;
-    set({ started: true });
+  openChat: async () => {
     const token = useAuthStore.getState().accessToken;
-    if (!token) return;
-    const date = toISODate();
-    try {
-      const { messages } = await fetchChatHistory(token, 40);
-      const restored: ChatMessage[] = messages
-        .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => ({
-          id: m.id,
-          role: m.role as ChatRole,
-          content: m.content,
-          cards: m.data?.cards ?? [],
-          options: m.data?.options ?? []
-        }));
 
-      if (restored.length > 0) {
-        // Only the latest assistant message keeps its tappable options active.
-        const lastAssistant = [...restored].reverse().find((m) => m.role === 'assistant');
-        const messagesWithOptions = restored.map((m) =>
-          m === lastAssistant ? m : { ...m, options: [] }
-        );
-        set({ messages: messagesWithOptions });
-        return;
+    // 1) Load persisted history once per session.
+    if (!get().started) {
+      set({ started: true });
+      if (token) {
+        try {
+          const { messages } = await fetchChatHistory(token, 40);
+          const restored: ChatMessage[] = messages
+            .filter((m) => m.role === 'user' || m.role === 'assistant')
+            .map((m) => ({
+              id: m.id,
+              role: m.role as ChatRole,
+              content: m.content,
+              cards: m.data?.cards ?? [],
+              options: [] // history options are stale; the greeting provides fresh ones
+            }));
+          set({ messages: restored });
+        } catch {
+          // ignore — greeting below still gives the user a starting point
+        }
       }
+    }
 
-      // No history yet — fetch the opening turn (setup vs daily check-in).
-      const session = await fetchChatSession(token, date);
-      set({
-        messages: [
-          { id: makeId('msg'), role: 'assistant', content: session.message, cards: session.cards ?? [], options: session.options ?? [] }
-        ]
+    // 2) Proactively greet on every open (coach speaks first).
+    await get().greet();
+  },
+
+  // Appends a fresh, non-persisted AI greeting with a motivational quote. If the
+  // last message is already an unanswered greeting, it's replaced (new quote) so
+  // greetings never stack when toggling tabs.
+  greet: async () => {
+    const token = useAuthStore.getState().accessToken;
+
+    const append = (content: string, options: string[]) =>
+      set((state) => {
+        const msgs = state.messages.map((m) => ({ ...m, options: [] }));
+        if (msgs.length && msgs[msgs.length - 1]?.ephemeral) msgs.pop();
+        return {
+          messages: [...msgs, { id: makeId('greet'), role: 'assistant' as ChatRole, content, cards: [], options, ephemeral: true }]
+        };
       });
+
+    const defaultOptions = ['Log a meal', 'Mark workout done', 'Add water'];
+
+    if (!token) {
+      append(`Hey! I'm your SyncLife coach. Let's make today count.${quoteLine()}`, defaultOptions);
+      return;
+    }
+
+    try {
+      const session = await fetchChatSession(token, toISODate());
+      // Setup prompts stay focused; daily check-ins carry a fresh quote.
+      const content = session.setupComplete ? `${session.message}${quoteLine()}` : session.message;
+      append(content, session.options?.length ? session.options : defaultOptions);
     } catch {
-      set({
-        messages: [
-          {
-            id: makeId('msg'),
-            role: 'assistant',
-            content: "Hi! I'm your SyncLife coach. How can I help — log a meal, a workout, water, or an expense?",
-            cards: [],
-            options: ['Log a meal', 'Mark workout done', 'Add water']
-          }
-        ]
-      });
+      append(`Welcome back! Ready to keep your streak alive?${quoteLine()}`, defaultOptions);
     }
   },
 

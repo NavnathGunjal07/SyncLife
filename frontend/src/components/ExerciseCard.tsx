@@ -14,9 +14,11 @@ type Props = {
   mode: WorkoutMode;
   checked: boolean;
   onToggle: () => void;
+  /** Hide the completion checkbox — used when browsing demos (e.g. rest day). */
+  hideToggle?: boolean;
 };
 
-export function ExerciseCard({ exercise, mode, checked, onToggle }: Props) {
+export function ExerciseCard({ exercise, mode, checked, onToggle, hideToggle }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const displayName = mode === 'Home' && exercise.homeAlt ? exercise.homeAlt : exercise.name;
   const detail = exercise.durationSec ? `${Math.round(exercise.durationSec / 60)} min` : `${exercise.sets} x ${exercise.reps}`;
@@ -46,9 +48,13 @@ export function ExerciseCard({ exercise, mode, checked, onToggle }: Props) {
             <Text style={styles.meta}>{detail}</Text>
           </View>
         </Pressable>
-        <Pressable onPress={onToggle} hitSlop={12}>
-          <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={28} color={checked ? colors.accent : colors.textMuted} />
-        </Pressable>
+        {hideToggle ? (
+          <Ionicons name="play-circle-outline" size={26} color={colors.textMuted} />
+        ) : (
+          <Pressable onPress={onToggle} hitSlop={12}>
+            <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={28} color={checked ? colors.accent : colors.textMuted} />
+          </Pressable>
+        )}
       </Card>
 
       <ExerciseDetailSheet

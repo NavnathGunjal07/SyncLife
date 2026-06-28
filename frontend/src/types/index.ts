@@ -21,6 +21,27 @@ export interface MealLog {
   totalProtein: number;
 }
 
+// AI-parsed free-text meal, before the user confirms/saves it.
+export interface ParsedMeal {
+  name: string;
+  mealType: string;
+  calories: number;
+  protein: number;
+  quantity: number;
+  estimated: boolean;
+}
+
+// A persisted meal row (includes name/type) for the History view.
+export interface MealHistoryItem {
+  id: string;
+  mealName: string;
+  mealType: string;
+  quantity: number;
+  totalCalories: number;
+  totalProtein: number;
+  date: string;
+}
+
 export interface Exercise {
   name: string;
   sets: number;
@@ -149,6 +170,8 @@ export interface ChatMessage {
   content: string;
   cards: ChatCard[];
   options: string[];
+  /** Client-only proactive greeting; shown on open, not persisted to the DB. */
+  ephemeral?: boolean;
 }
 
 export interface ChatTurnResult {
@@ -184,6 +207,5 @@ export type AppTabParamList = {
   Meals: undefined;
   Assistant: undefined;
   Workout: undefined;
-  Finance: undefined;
   Profile: undefined;
 };

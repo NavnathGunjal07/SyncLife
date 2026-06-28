@@ -3,8 +3,10 @@ import {
   ChatTurnResult,
   DailySummary,
   GoldEntry,
+  MealHistoryItem,
   MealLog,
   MotivationAlarm,
+  ParsedMeal,
   SavedMemory,
   Transaction,
   WaterLog,
@@ -89,6 +91,18 @@ export function fetchMealLogs(token: string, date: string) {
   return apiRequest<{ logs: MealLog[] }>(`/api/logs/meals?date=${date}`, token);
 }
 
+export function fetchMealHistory(token: string, limit = 200) {
+  return apiRequest<{ logs: MealHistoryItem[] }>(`/api/logs/meals/history?limit=${limit}`, token);
+}
+
+// AI: turn free text ("2 rotis and dal") into a structured, savable meal draft.
+export function parseMeal(token: string, text: string) {
+  return apiRequest<{ meal: ParsedMeal }>('/api/logs/meal/parse', token, {
+    method: 'POST',
+    body: JSON.stringify({ text })
+  });
+}
+
 // ─── Workout Logs ─────────────────────────────────────────────────────────────
 
 export function postWorkoutLog(token: string, log: WorkoutLog) {
@@ -117,6 +131,10 @@ export function postWaterLog(token: string, log: WaterLog) {
 
 export function fetchWaterLogs(token: string, date: string) {
   return apiRequest<{ logs: WaterLog[] }>(`/api/logs/water?date=${date}`, token);
+}
+
+export function fetchWaterHistory(token: string, limit = 300) {
+  return apiRequest<{ logs: WaterLog[] }>(`/api/logs/water/history?limit=${limit}`, token);
 }
 
 // ─── Transactions ─────────────────────────────────────────────────────────────

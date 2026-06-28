@@ -23,7 +23,10 @@ declare module '@react-navigation/core' {
   export function useNavigation<T = {
     navigate: (name: string, params?: unknown) => void;
     dispatch: (action: unknown) => void;
+    addListener: (event: 'focus' | 'blur' | 'state', callback: () => void) => () => void;
   }>(): T;
+
+  export function useFocusEffect(effect: () => void | (() => void)): void;
 
   export function createNavigationContainerRef<ParamList = Record<string, unknown>>(): {
     isReady: () => boolean;

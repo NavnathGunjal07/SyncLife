@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { parseMeal } from '../services/chatService.js';
 import {
   createMealLog,
   createWorkoutLog,
@@ -8,9 +9,11 @@ import {
   createGoldEntry,
   upsertDailySummary,
   getMealLogsForDate,
+  getMealHistory,
   getWorkoutLogsForDate,
   getWorkoutHistory,
   getWaterLogsForDate,
+  getWaterHistory,
   getTransactionsForMonth,
   getAllGoldEntries,
   getDailySummary
@@ -111,6 +114,28 @@ router.get('/meals', async (req: Request, res: Response, next: NextFunction) => 
   }
 });
 
+// Recent meal logs across days (most recent first) for the History tab.
+router.get('/meals/history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 200, 500);
+    const logs = await getMealHistory(req.userId, limit);
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Parse a free-text meal description into a structured, savable draft (AI).
+router.post('/meal/parse', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { text } = z.object({ text: z.string().min(1).max(300) }).parse(req.body);
+    const meal = await parseMeal(text);
+    res.json({ meal });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ─── Workout Routes ───────────────────────────────────────────────────────────
 
 router.post('/workout', async (req: Request, res: Response, next: NextFunction) => {
@@ -162,6 +187,17 @@ router.get('/water', async (req: Request, res: Response, next: NextFunction) => 
   try {
     const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
     const logs = await getWaterLogsForDate(req.userId, date);
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Recent water logs across days (most recent first) for the History tab.
+router.get('/water/history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 300, 500);
+    const logs = await getWaterHistory(req.userId, limit);
     res.json({ logs });
   } catch (error) {
     next(error);

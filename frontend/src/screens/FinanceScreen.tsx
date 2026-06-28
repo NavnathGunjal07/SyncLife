@@ -7,8 +7,10 @@ import { AppBottomSheet } from '../components/AppBottomSheet';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { QuoteCard } from '../components/QuoteCard';
 import { EXPENSE_CATEGORIES, GOLD_CATEGORIES, INCOME_CATEGORIES } from '../constants/finance';
 import { colors } from '../constants/theme';
+import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { useFinanceStore } from '../store/finance';
 import { useGoldStore } from '../store/gold';
 import { GoldCategory, TransactionType } from '../types';
@@ -19,6 +21,7 @@ const tabs = ['Expenses', 'Income', 'Summary', 'Gold'] as const;
 export function FinanceScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<(typeof tabs)[number]>('Expenses');
+  const { quote: financeQuote, gradient: financeGradient } = useRotatingQuote('finance');
   const [sheet, setSheet] = useState<'transaction' | 'gold' | null>(null);
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0] ?? 'Other');
   const [amount, setAmount] = useState('');
@@ -71,6 +74,7 @@ export function FinanceScreen() {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Finance</Text>
+        <QuoteCard quote={financeQuote} gradient={financeGradient} variant="compact" label="Money wisdom" />
         <View style={styles.tabs}>{tabs.map((item) => <Chip key={item} label={item} active={tab === item} onPress={() => setTab(item)} />)}</View>
 
         {tab === 'Expenses' ? (

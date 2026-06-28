@@ -18,6 +18,7 @@ import { AppTabParamList } from '../types';
 type HomeStackParamList = {
   Dashboard: undefined;
   Water: undefined;
+  Finance: undefined;
 };
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
@@ -28,6 +29,8 @@ function HomeNavigator() {
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
       <HomeStack.Screen name="Water" component={WaterScreen} />
+      {/* Finance moved off the tab bar — reached from the Dashboard cards. */}
+      <HomeStack.Screen name="Finance" component={FinanceScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -37,7 +40,6 @@ const icons: Record<keyof AppTabParamList, keyof typeof Ionicons.glyphMap> = {
   Meals: 'restaurant',
   Assistant: 'sparkles',
   Workout: 'fitness',
-  Finance: 'wallet',
   Profile: 'person'
 };
 
@@ -103,7 +105,6 @@ export function AppNavigator() {
         }}
       />
       <Tab.Screen name="Workout" component={WorkoutScreen} />
-      <Tab.Screen name="Finance" component={FinanceScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

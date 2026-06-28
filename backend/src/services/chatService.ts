@@ -11,6 +11,7 @@
  */
 import { z } from 'zod';
 
+import { getRandomQuote, getRandomQuotes } from '../constants/quotes.js';
 import {
   createMealLog,
   createWorkoutLog,
@@ -532,11 +533,13 @@ function buildSystemPrompt(ctx: ChatContext): string {
     '',
     'Behaviour rules:',
     '- Keep replies short, friendly and encouraging. Nudge toward healthier choices.',
+    '- Regularly remind the user that consistency and small daily actions compound — protecting their streak matters more than any single perfect day. When it fits, end with a short one-line motivational nudge.',
     '- To perform ANY action (log a meal, mark a workout, add water/expense, update profile, set routine), you MUST call the matching tool. Never claim you did something without calling its tool.',
     '- When you need the user to choose or confirm, call ask_user with 2-4 concise options instead of writing the question as plain text.',
     '- Use show_exercise to display an exercise demo when the user asks how to do one or when suggesting workouts.',
     '- Only call propose_memory for durable facts/preferences, not one-off logs.',
-    '- Never invent the user\'s data; rely on the context below or ask.'
+    '- Never invent the user\'s data; rely on the context below or ask.',
+    '- If the user is just chatting, venting, greeting, or asking a general or advice question that no tool covers, do NOT force a tool — reply naturally and warmly like a supportive friend and coach, and weave in ONE short motivational quote (with its author) that fits the moment.'
   ];
 
   if (!ctx.setupComplete) {
@@ -558,6 +561,13 @@ function buildSystemPrompt(ctx: ChatContext): string {
     `- Daily streak: ${ctx.streak} days`,
     ctx.recentWorkouts.length ? `- Recent workouts: ${ctx.recentWorkouts.join('; ')}` : '',
     ctx.memories.length ? `- Remembered about the user: ${ctx.memories.join('; ')}` : ''
+  );
+
+  // Ground the model with a few real quotes it can weave into casual replies.
+  lines.push(
+    '',
+    'Motivational quotes you may use (attribute correctly, or pick your own):',
+    ...getRandomQuotes(5).map((q) => `- "${q.text}" — ${q.author}`)
   );
 
   return lines.filter((l) => l !== '').join('\n');
@@ -606,6 +616,28 @@ async function callGroq(apiKey: string, messages: GroqMessage[]): Promise<GroqMe
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
+// A friendly, conversational reply used when the AI provider is unavailable
+// (no key / error) so casual chat still feels alive — always carries a quote.
+function conversationalFallback(message: string): string {
+  const q = getRandomQuote();
+  const m = message.toLowerCase();
+  let lead: string;
+  if (/\b(hi|hello|hey|yo|hii|hiya|namaste)\b/.test(m)) {
+    lead = "Hey! Good to see you. I'm your SyncLife coach — here to keep you moving.";
+  } else if (m.includes('how are you') || m.includes('how r u')) {
+    lead = "I'm fired up and ready to help you make today count!";
+  } else if (/(tired|lazy|unmotivat|exhaust|can'?t|cant|give up|quit|skip|don'?t feel)/.test(m)) {
+    lead = "I hear you — some days feel heavy. Showing up even a little still moves you forward.";
+  } else if (m.includes('thank')) {
+    lead = "Anytime! You're putting in the work — I'm just your hype crew.";
+  } else if (m.includes('?')) {
+    lead = "Good question! I'm in lightweight mode right now, but I've got your back — and you can always ask me to log meals, workouts, water or expenses.";
+  } else {
+    lead = "I'm here for you. Tell me what you ate, your workout, water or spending and I'll track it — or we can just talk it out.";
+  }
+  return `${lead}\n\n“${q.text}” — ${q.author}`;
+}
+
 export async function runChatTurn(userId: string, userMessage: string, date: string): Promise<ChatTurnResult> {
   // Persist the user's message immediately.
   await createChatMessage(userId, { role: 'user', content: userMessage });
@@ -622,7 +654,7 @@ export async function runChatTurn(userId: string, userMessage: string, date: str
   };
 
   if (!apiKey) {
-    return finish("I'm not fully configured yet (missing AI key), but I'm here. You can still track things from the other tabs.");
+    return finish(conversationalFallback(userMessage));
   }
 
   // Gather context.
@@ -697,7 +729,7 @@ export async function runChatTurn(userId: string, userMessage: string, date: str
     // Degrade gracefully — anything already executed is preserved in `cards`.
     const fallback = cards.length
       ? 'Done! (I had a hiccup writing my reply, but your update went through.)'
-      : "Sorry, I couldn't process that just now. Please try again.";
+      : conversationalFallback(userMessage);
     return finish(fallback);
   }
 }
@@ -708,10 +740,11 @@ export async function getChatSession(userId: string, date: string) {
   const [profile, totals] = await Promise.all([getUserProfile(userId), getTodayTotals(userId, date)]);
   const setupComplete = profile?.setupComplete ?? false;
 
+  // Note: the opener is NOT persisted — the client shows it as a fresh,
+  // ephemeral greeting each time the chat opens (so it can carry a new quote).
   if (!setupComplete) {
     const message =
       "Hi! I'm your SyncLife coach 👋 Let's set you up in a few seconds. To tailor your meals and workouts, what's your current weight and height? (You can skip if you'd rather not.)";
-    await createChatMessage(userId, { role: 'assistant', content: message, kind: 'options', data: { cards: [], options: ['Enter weight & height', 'Skip for now'] } });
     return { setupComplete, message, options: ['Enter weight & height', 'Skip for now'], cards: [] as ChatCard[] };
   }
 
@@ -719,6 +752,89 @@ export async function getChatSession(userId: string, date: string) {
     totals.waterMl
   )}ml of water, and your workout is ${totals.workoutCompleted ? 'done ✅' : 'still pending'}. How's your day going?`;
   const options = ['Log a meal', 'Mark workout done', 'Add water', 'Add an expense'];
-  await createChatMessage(userId, { role: 'assistant', content: greeting, kind: 'options', data: { cards: [], options } });
   return { setupComplete, message: greeting, options, cards: [] as ChatCard[] };
+}
+
+// ─── Free-text meal parsing (used by the Meals screen "add anything" box) ─────
+
+export interface ParsedMeal {
+  name: string;
+  mealType: string;
+  calories: number;
+  protein: number;
+  quantity: number;
+  /** true when calories came from the AI/catalog, false when we couldn't estimate */
+  estimated: boolean;
+}
+
+function fallbackParseMeal(text: string): ParsedMeal {
+  const match = MEAL_CATALOG.find((m) => text.toLowerCase().includes(m.name.toLowerCase()));
+  if (match) {
+    return { name: match.name, mealType: match.type, calories: match.calories, protein: match.protein, quantity: 1, estimated: true };
+  }
+  const hour = new Date().getHours();
+  const mealType = hour < 11 ? 'Breakfast' : hour < 16 ? 'Lunch' : hour < 21 ? 'Dinner' : 'Snacks';
+  return { name: text.trim().slice(0, 60) || 'Meal', mealType, calories: 0, protein: 0, quantity: 1, estimated: false };
+}
+
+const PARSE_SYSTEM_PROMPT = `You convert a short free-text description of food the user ate into one structured meal log.
+Respond with ONLY a JSON object, no prose, with exactly these keys:
+{"name": string, "mealType": "Breakfast"|"Lunch"|"Dinner"|"Snacks", "calories": number, "protein": number, "quantity": number}
+- calories and protein are the TOTAL for the whole described portion (not per serving). protein is in grams.
+- Estimate realistic values for typical Indian portions when amounts are vague.
+- quantity is the number of servings the user described (default 1).
+- Infer mealType from the food/time if the user didn't say.`;
+
+interface GroqContentResponse {
+  choices?: { message?: { content?: string } }[];
+}
+
+/** Parse a free-text meal into a structured, savable log. Falls back to a
+ * catalog match / heuristic when the AI key is missing or the call fails. */
+export async function parseMeal(text: string): Promise<ParsedMeal> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return fallbackParseMeal(text);
+
+  try {
+    const response = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        temperature: 0.2,
+        max_tokens: 200,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: PARSE_SYSTEM_PROMPT },
+          { role: 'user', content: text }
+        ]
+      })
+    });
+    if (!response.ok) throw new Error(`Groq parse error ${response.status}`);
+    const data = (await response.json()) as GroqContentResponse;
+    const raw = data.choices?.[0]?.message?.content;
+    if (!raw) throw new Error('empty parse response');
+
+    const parsed = z
+      .object({
+        name: z.string().min(1),
+        mealType: z.enum(['Breakfast', 'Lunch', 'Dinner', 'Snacks']),
+        calories: z.number().nonnegative(),
+        protein: z.number().nonnegative(),
+        quantity: z.number().positive()
+      })
+      .parse(JSON.parse(raw));
+
+    return {
+      name: parsed.name.slice(0, 80),
+      mealType: parsed.mealType,
+      calories: Math.round(parsed.calories),
+      protein: Math.round(parsed.protein),
+      quantity: parsed.quantity,
+      estimated: true
+    };
+  } catch (error) {
+    console.error('[SyncLife API] meal parse failed, using fallback:', error);
+    return fallbackParseMeal(text);
+  }
 }

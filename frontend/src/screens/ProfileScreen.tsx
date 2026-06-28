@@ -8,8 +8,10 @@ import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
 import { MotivationAlarmsCard } from '../components/MotivationAlarmsCard';
+import { QuoteCard } from '../components/QuoteCard';
 import { SavedMemoriesCard } from '../components/SavedMemoriesCard';
 import { colors } from '../constants/theme';
+import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { useAuthStore } from '../store/auth';
 import { useChatStore } from '../store/chat';
 import { UserProfile } from '../types';
@@ -22,6 +24,7 @@ export function ProfileScreen() {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const { user, profile, updateProfile, syncNow, logout } = useAuthStore();
+  const { quote, gradient } = useRotatingQuote();
 
   const updateNumber = (key: keyof Pick<UserProfile, 'weightKg' | 'heightCm' | 'calorieTarget' | 'waterGoalMl' | 'monthlyBudget'>, value: string) => {
     const numeric = Number(value.replace(/[^0-9.]/g, ''));
@@ -38,6 +41,7 @@ export function ProfileScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>Profile</Text>
+      <QuoteCard quote={quote} gradient={gradient} variant="compact" label="Keep going" />
       <Card style={styles.profile}>
         <View style={styles.avatar}>
           <Text style={styles.initial}>{user?.name?.slice(0, 1) ?? 'S'}</Text>

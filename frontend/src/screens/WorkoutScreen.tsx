@@ -7,8 +7,10 @@ import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
 import { ExerciseCard } from '../components/ExerciseCard';
+import { QuoteCard } from '../components/QuoteCard';
 import { colors } from '../constants/theme';
 import { WORKOUT_PLAN } from '../constants/workouts';
+import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { useWorkout } from '../hooks/useWorkout';
 import { useWorkoutStore } from '../store/workout';
 import { Level, WorkoutMode } from '../types';
@@ -21,6 +23,7 @@ export function WorkoutScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<(typeof tabs)[number]>('Today');
   const workout = useWorkout();
+  const { quote, gradient } = useRotatingQuote();
   const { setLevel, setMode, toggleExercise, completeWorkout, logs } = useWorkoutStore();
 
   const complete = async () => {
@@ -35,33 +38,65 @@ export function WorkoutScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>Workout</Text>
+      <QuoteCard quote={quote} gradient={gradient} variant="compact" label="Train hard" />
       <View style={styles.tabs}>{tabs.map((item) => <Chip key={item} label={item} active={tab === item} onPress={() => setTab(item)} />)}</View>
 
       {tab === 'Today' ? (
         <>
           <View style={styles.tabs}>{levels.map((item) => <Chip key={item} label={item} active={workout.level === item} onPress={() => setLevel(item)} />)}</View>
           <View style={styles.tabs}>{modes.map((item) => <Chip key={item} label={item} active={workout.mode === item} onPress={() => setMode(item)} />)}</View>
-          <Text style={styles.muted}>{workout.done}/{workout.total} exercises checked. Timer starts on first check.</Text>
-          <View style={styles.stack}>
-            {workout.plan.length ? workout.plan.map((exercise) => (
-              <ExerciseCard
-                key={exercise.name}
-                exercise={exercise}
-                mode={workout.mode}
-                checked={workout.checked.includes(exercise.name)}
-                onToggle={() => toggleExercise(exercise.name)}
-              />
-            )) : <Card><Text style={styles.muted}>Rest day. Stretch lightly or take the win.</Text></Card>}
-          </View>
-          {workout.completedToday ? (
-            <Text style={styles.completed}>✓ Today's workout is complete. Logged once per day.</Text>
+          {workout.plan.length ? (
+            <Text style={styles.muted}>{workout.done}/{workout.total} exercises checked. Timer starts on first check.</Text>
           ) : null}
-          <AppButton
-            label={workout.completedToday ? 'Completed for today' : 'Mark workout complete'}
-            icon="checkmark"
-            disabled={!workout.plan.length || workout.completedToday}
-            onPress={() => void complete()}
-          />
+          <View style={styles.stack}>
+            {workout.plan.length ? (
+              workout.plan.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.name}
+                  exercise={exercise}
+                  mode={workout.mode}
+                  checked={workout.checked.includes(exercise.name)}
+                  onToggle={() => toggleExercise(exercise.name)}
+                />
+              ))
+            ) : (
+              <>
+                <Card>
+                  <Text style={styles.muted}>🧘 Rest day — recover and stretch. Browse this week's workouts below and tap any to see the demo.</Text>
+                </Card>
+                {Object.entries(WORKOUT_PLAN)
+                  .filter(([, exercises]) => exercises.length > 0)
+                  .map(([day, exercises]) => (
+                    <View key={day} style={styles.daySection}>
+                      <Text style={styles.day}>{day}</Text>
+                      {exercises.map((exercise) => (
+                        <ExerciseCard
+                          key={`${day}_${exercise.name}`}
+                          exercise={exercise}
+                          mode={workout.mode}
+                          checked={false}
+                          onToggle={() => undefined}
+                          hideToggle
+                        />
+                      ))}
+                    </View>
+                  ))}
+              </>
+            )}
+          </View>
+          {workout.plan.length ? (
+            <>
+              {workout.completedToday ? (
+                <Text style={styles.completed}>✓ Today's workout is complete. Logged once per day.</Text>
+              ) : null}
+              <AppButton
+                label={workout.completedToday ? 'Completed for today' : 'Mark workout complete'}
+                icon="checkmark"
+                disabled={workout.completedToday}
+                onPress={() => void complete()}
+              />
+            </>
+          ) : null}
         </>
       ) : null}
 
@@ -97,6 +132,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 28, fontWeight: '900' },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stack: { gap: 10 },
+  daySection: { gap: 10, marginTop: 6 },
   muted: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
   completed: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   day: { color: colors.text, fontSize: 18, fontWeight: '900', textTransform: 'capitalize' }

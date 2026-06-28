@@ -15,7 +15,9 @@ import {
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
+import { QuoteCard } from '../components/QuoteCard';
 import { colors } from '../constants/theme';
+import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { login } from '../services/api';
 import { useAuthStore } from '../store/auth';
 
@@ -32,6 +34,7 @@ export function SignInScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { quote, gradient: quoteGradient } = useRotatingQuote();
 
   const handleLogin = async () => {
     if (!username.trim() || !password) {
@@ -64,6 +67,8 @@ export function SignInScreen() {
         </View>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.body}>Sign in to continue tracking your meals, workouts, and finances.</Text>
+
+        <QuoteCard quote={quote} gradient={quoteGradient} variant="compact" />
 
         <View style={styles.form}>
           <Text style={styles.label}>Username</Text>

@@ -100,6 +100,15 @@ export function getMealLogsForDate(userId: string, date: string) {
   return prisma.mealLog.findMany({ where: { userId, date }, orderBy: { createdAt: 'asc' } });
 }
 
+// Recent meal logs across days (most recent first) for the Meals history view.
+export function getMealHistory(userId: string, limit = 200) {
+  return prisma.mealLog.findMany({
+    where: { userId },
+    orderBy: [{ date: 'desc' }, { createdAt: 'asc' }],
+    take: limit
+  });
+}
+
 // ─── Workout Logs ─────────────────────────────────────────────────────────────
 
 // Upsert keyed on (userId, date) so a user can only have ONE workout record per
@@ -149,6 +158,15 @@ export function createWaterLog(userId: string, log: WaterLogInput) {
 
 export function getWaterLogsForDate(userId: string, date: string) {
   return prisma.waterLog.findMany({ where: { userId, date }, orderBy: { createdAt: 'asc' } });
+}
+
+// Recent water logs across days (most recent first) for the History view.
+export function getWaterHistory(userId: string, limit = 300) {
+  return prisma.waterLog.findMany({
+    where: { userId },
+    orderBy: [{ date: 'desc' }, { createdAt: 'asc' }],
+    take: limit
+  });
 }
 
 // ─── Transactions ─────────────────────────────────────────────────────────────

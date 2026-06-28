@@ -11,8 +11,10 @@ import { ExerciseCard } from '../components/ExerciseCard';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ProgressBar } from '../components/ProgressBar';
 import { ProgressRing } from '../components/ProgressRing';
+import { QuoteCard } from '../components/QuoteCard';
 import { MEALS } from '../constants/meals';
 import { colors, tints } from '../constants/theme';
+import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { useCalories } from '../hooks/useCalories';
 import { useWater } from '../hooks/useWater';
 import { useWorkout } from '../hooks/useWorkout';
@@ -25,6 +27,7 @@ import { inr } from '../utils/formatters';
 type HomeStackParamList = {
   Dashboard: undefined;
   Water: undefined;
+  Finance: undefined;
 };
 type NavProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -56,6 +59,9 @@ export function DashboardScreen() {
   const mealPlan = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(
     (type) => MEALS.find((meal) => meal.type === type)?.name ?? type
   );
+
+  // Fresh motivation every time the dashboard gains focus (each tab switch).
+  const { quote, gradient: quoteGradient } = useRotatingQuote();
 
   const firstName = user?.name?.trim().split(' ')[0] ?? '';
   const initial = (firstName || 'S').charAt(0).toUpperCase();
@@ -108,6 +114,8 @@ export function DashboardScreen() {
           </Pressable>
         </View>
 
+        <QuoteCard quote={quote} gradient={quoteGradient} label="Daily motivation" />
+
         <View style={styles.grid}>
           <Card style={styles.half} onPress={() => navigateTab('Meals')}>
             <StatHeader icon="restaurant" color={tints.calorie} label="Calories" />
@@ -131,7 +139,7 @@ export function DashboardScreen() {
             </View>
             <ProgressBar value={workoutProgress} color={tints.workout} />
           </Card>
-          <Card style={styles.half} onPress={() => navigateTab('Finance')}>
+          <Card style={styles.half} onPress={() => navigation.navigate('Finance')}>
             <StatHeader icon="wallet" color={tints.spend} label="Spend" />
             <View style={styles.statBody}>
               <Text style={styles.metric}>{inr(spend)}</Text>
@@ -141,7 +149,7 @@ export function DashboardScreen() {
           </Card>
         </View>
 
-        <Card onPress={() => navigateTab('Finance')}>
+        <Card onPress={() => navigation.navigate('Finance')}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <StatHeader icon="diamond" color={tints.gold} label="Gold portfolio" />

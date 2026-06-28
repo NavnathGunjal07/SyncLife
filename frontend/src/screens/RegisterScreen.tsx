@@ -15,7 +15,9 @@ import {
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
+import { QuoteCard } from '../components/QuoteCard';
 import { colors } from '../constants/theme';
+import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { register } from '../services/api';
 import { useAuthStore } from '../store/auth';
 
@@ -33,6 +35,7 @@ export function RegisterScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { quote, gradient: quoteGradient } = useRotatingQuote();
 
   const handleRegister = async () => {
     if (!name.trim()) {
@@ -73,6 +76,8 @@ export function RegisterScreen() {
         </View>
         <Text style={styles.title}>Create account</Text>
         <Text style={styles.body}>Set up SyncLife to start tracking meals, workouts, and finances.</Text>
+
+        <QuoteCard quote={quote} gradient={quoteGradient} variant="compact" />
 
         <View style={styles.form}>
           <Text style={styles.label}>Full name</Text>
