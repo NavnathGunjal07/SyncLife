@@ -11,6 +11,16 @@ export const colors = {
   warning: '#F59E0B'
 } as const;
 
+/** Per-metric accent colors used for icon badges and progress indicators. */
+export const tints = {
+  calorie: '#22C55E',
+  water: '#38BDF8',
+  workout: '#A78BFA',
+  spend: '#F59E0B',
+  gold: '#FBBF24',
+  streak: '#FB7185'
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,

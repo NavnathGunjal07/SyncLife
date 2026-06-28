@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabNavigationOptions, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useEffect } from 'react';
 
 import { colors } from '../constants/theme';
+import { hydrateAll } from '../services/bootstrap';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { FinanceScreen } from '../screens/FinanceScreen';
 import { MealsScreen } from '../screens/MealsScreen';
@@ -37,6 +39,12 @@ const icons: Record<keyof AppTabParamList, keyof typeof Ionicons.glyphMap> = {
 };
 
 export function AppNavigator() {
+  // Pull persisted data back into the stores once the authed app mounts (covers
+  // both fresh login and cold start). Best-effort — failures fall back to cache.
+  useEffect(() => {
+    void hydrateAll();
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }: { route: { name: keyof AppTabParamList } }): BottomTabNavigationOptions => ({

@@ -54,34 +54,7 @@ declare module 'firebase/auth' {
   export function signInWithCredential(auth: unknown, credential: unknown): Promise<UserCredential>;
 }
 
-declare module 'expo-notifications' {
-  export type Notification = {
-    request: {
-      content: {
-        title: string | null;
-        body: string | null;
-        data: Record<string, any>;
-      };
-    };
-  };
-
-  export type NotificationResponse = {
-    notification: Notification;
-  };
-
-  export type Subscription = { remove: () => void };
-
-  export function setNotificationHandler(handler: {
-    handleNotification: (notification: Notification) => Promise<{ shouldPlaySound: boolean; shouldSetBadge: boolean; shouldShowAlert: boolean }>;
-  }): void;
-  export function getPermissionsAsync(): Promise<{ granted: boolean }>;
-  export function requestPermissionsAsync(): Promise<{ granted: boolean }>;
-  export function cancelAllScheduledNotificationsAsync(): Promise<void>;
-  export function cancelScheduledNotificationAsync(identifier: string): Promise<void>;
-  export function scheduleNotificationAsync(config: {
-    content: { title: string; body: string; sound?: boolean | string; data?: Record<string, unknown> };
-    trigger: { hour: number; minute: number; repeats: boolean } | Date;
-  }): Promise<string>;
-  export function getLastNotificationResponseAsync(): Promise<NotificationResponse | null>;
-  export function addNotificationResponseReceivedListener(listener: (response: NotificationResponse) => void): Subscription;
-}
+// NOTE: expo-notifications ships its own complete TypeScript types. Do not stub
+// it here — a hand-written stub previously hid the Android trigger API
+// (DAILY trigger, notification channels) and led to iOS-only calendar triggers
+// that silently threw on Android.

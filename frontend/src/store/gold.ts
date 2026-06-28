@@ -11,10 +11,12 @@ type GoldState = {
   entries: GoldEntry[];
   addGoldEntry: (input: { category: GoldCategory; grams: number; buyPrice: number }) => Promise<void>;
   holdings: () => ReturnType<typeof calculateGoldHoldings>;
+  setEntries: (entries: GoldEntry[]) => void;
 };
 
 export const useGoldStore = create<GoldState>((set, get) => ({
   entries: [],
+  setEntries: (entries) => set({ entries }),
   addGoldEntry: async (input) => {
     const entry: GoldEntry = { id: makeId('gold'), date: toISODate(), ...input };
     const entries = [...get().entries, entry];

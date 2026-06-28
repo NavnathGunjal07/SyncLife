@@ -10,9 +10,10 @@ type Props = {
   stroke?: number;
   label?: string;
   sublabel?: string;
+  color?: string;
 };
 
-export function ProgressRing({ value, size = 112, stroke = 10, label, sublabel }: Props) {
+export function ProgressRing({ value, size = 112, stroke = 10, label, sublabel, color = colors.accent }: Props) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = clamp(value, 0, 100);
@@ -21,7 +22,7 @@ export function ProgressRing({ value, size = 112, stroke = 10, label, sublabel }
       <Svg width={size} height={size}>
         <Circle stroke={colors.surfaceAlt} fill="none" cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke} />
         <Circle
-          stroke={colors.accent}
+          stroke={color}
           fill="none"
           cx={size / 2}
           cy={size / 2}

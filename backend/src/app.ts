@@ -9,6 +9,8 @@ import authRoutes from './routes/authRoutes.js';
 import logsRoutes from './routes/logsRoutes.js';
 import goalsRoutes from './routes/goalsRoutes.js';
 import motivationRoutes from './routes/motivationRoutes.js';
+import streakRoutes from './routes/streakRoutes.js';
+import alarmsRoutes from './routes/alarmsRoutes.js';
 
 const app = express();
 
@@ -23,7 +25,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
   cors({
     origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
@@ -49,6 +51,8 @@ app.use('/api', authMiddleware);
 app.use('/api/logs', logsRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/motivation', motivationRoutes);
+app.use('/api/streak', streakRoutes);
+app.use('/api/alarms', alarmsRoutes);
 
 // ─── 404 Fallback ─────────────────────────────────────────────────────────────
 

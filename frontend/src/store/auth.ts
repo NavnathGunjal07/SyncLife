@@ -27,8 +27,10 @@ type AuthState = {
   setSession: (user: AuthUser, token: string) => void;
   markOnboardingComplete: () => void;
   updateProfile: (patch: Partial<UserProfile>) => Promise<void>;
+  hydrateProfile: (patch: Partial<UserProfile>) => void;
   syncNow: () => Promise<number>;
   incrementStreak: () => void;
+  setStreak: (streak: number) => void;
   isTokenValid: () => boolean;
   logout: () => Promise<void>;
 };
@@ -67,9 +69,15 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      // Merge a server-sourced profile into local state WITHOUT POSTing it back
+      // (used during hydration; updateProfile is for user edits that sync up).
+      hydrateProfile: (patch) => set((state) => ({ profile: { ...state.profile, ...patch } })),
+
       syncNow: async () => 0,
 
       incrementStreak: () => set((state) => ({ streak: state.streak + 1 })),
+
+      setStreak: (streak) => set({ streak }),
 
       logout: async () => {
         set({ user: null, accessToken: null, streak: 0 });

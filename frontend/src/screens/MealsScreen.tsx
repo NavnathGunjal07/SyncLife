@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppBottomSheet } from '../components/AppBottomSheet';
@@ -14,6 +15,7 @@ import { useMealsStore } from '../store/meals';
 import { Meal, MealType } from '../types';
 
 export function MealsScreen() {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<MealType>('Breakfast');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Meal | null>(null);
@@ -37,7 +39,7 @@ export function MealsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Meals</Text>

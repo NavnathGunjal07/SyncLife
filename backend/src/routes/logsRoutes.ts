@@ -9,6 +9,7 @@ import {
   upsertDailySummary,
   getMealLogsForDate,
   getWorkoutLogsForDate,
+  getWorkoutHistory,
   getWaterLogsForDate,
   getTransactionsForMonth,
   getAllGoldEntries,
@@ -126,6 +127,18 @@ router.get('/workouts', async (req: Request, res: Response, next: NextFunction) 
   try {
     const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
     const raw = await getWorkoutLogsForDate(req.userId, date);
+    const logs = raw.map((l) => ({ ...l, exercises: JSON.parse(l.exercises) as string[] }));
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Recent workout history (most recent first) for the History tab.
+router.get('/workouts/history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 60, 200);
+    const raw = await getWorkoutHistory(req.userId, limit);
     const logs = raw.map((l) => ({ ...l, exercises: JSON.parse(l.exercises) as string[] }));
     res.json({ logs });
   } catch (error) {

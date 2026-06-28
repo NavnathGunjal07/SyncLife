@@ -1,6 +1,7 @@
 import { CommonActions, useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
@@ -17,6 +18,7 @@ type NavProp = NativeStackNavigationProp<{ Auth: undefined; AppTabs: undefined }
 
 export function ProfileScreen() {
   const navigation = useNavigation<NavProp>();
+  const insets = useSafeAreaInsets();
   const { user, profile, updateProfile, syncNow, logout } = useAuthStore();
 
   const updateNumber = (key: keyof Pick<UserProfile, 'weightKg' | 'heightCm' | 'calorieTarget' | 'waterGoalMl' | 'monthlyBudget'>, value: string) => {
@@ -32,7 +34,7 @@ export function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>Profile</Text>
       <Card style={styles.profile}>
         <View style={styles.avatar}>

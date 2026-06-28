@@ -11,10 +11,12 @@ type FinanceState = {
   addTransaction: (input: { type: TransactionType; category: string; amount: number; notes: string }) => Promise<void>;
   totalForDate: (type: TransactionType, date?: string) => number;
   monthlyTotal: (type: TransactionType) => number;
+  setTransactions: (transactions: Transaction[]) => void;
 };
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
   transactions: [],
+  setTransactions: (transactions) => set({ transactions }),
   addTransaction: async (input) => {
     const tx: Transaction = { id: makeId('tx'), date: toISODate(), ...input };
     const transactions = [...get().transactions, tx];

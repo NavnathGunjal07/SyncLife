@@ -102,22 +102,34 @@ export function getMealLogsForDate(userId: string, date: string) {
 
 // ─── Workout Logs ─────────────────────────────────────────────────────────────
 
+// Upsert keyed on (userId, date) so a user can only have ONE workout record per
+// day — re-submitting overwrites that day instead of stacking duplicate rows.
 export function createWorkoutLog(userId: string, log: WorkoutLogInput) {
-  return prisma.workoutLog.create({
-    data: {
-      userId,
-      date: log.date,
-      day: log.day,
-      exercises: JSON.stringify(log.exercises),
-      durationMin: log.durationMin,
-      caloriesBurned: log.caloriesBurned,
-      completed: log.completed
-    }
+  const data = {
+    day: log.day,
+    exercises: JSON.stringify(log.exercises),
+    durationMin: log.durationMin,
+    caloriesBurned: log.caloriesBurned,
+    completed: log.completed
+  };
+  return prisma.workoutLog.upsert({
+    where: { userId_date: { userId, date: log.date } },
+    update: data,
+    create: { userId, date: log.date, ...data }
   });
 }
 
 export function getWorkoutLogsForDate(userId: string, date: string) {
   return prisma.workoutLog.findMany({ where: { userId, date }, orderBy: { createdAt: 'asc' } });
+}
+
+// Recent workout history (most recent first) for the History tab.
+export function getWorkoutHistory(userId: string, limit = 60) {
+  return prisma.workoutLog.findMany({
+    where: { userId },
+    orderBy: { date: 'desc' },
+    take: limit
+  });
 }
 
 // ─── Water Logs ───────────────────────────────────────────────────────────────
@@ -251,4 +263,74 @@ export function upsertUserProfile(userId: string, profile: ProfileInput) {
 
 export function getUserProfile(userId: string) {
   return prisma.userProfile.findUnique({ where: { userId } });
+}
+
+// ─── Daily Login / Streak ─────────────────────────────────────────────────────
+
+function isoDaysApart(a: string, b: string): number {
+  const da = new Date(`${a}T00:00:00Z`).getTime();
+  const db = new Date(`${b}T00:00:00Z`).getTime();
+  return Math.round((da - db) / 86_400_000);
+}
+
+/**
+ * Records a login for `date` (caller passes the device-local YYYY-MM-DD) and
+ * returns the resulting streak. Same-day logins are idempotent; a login the day
+ * after the last active day extends the streak; any longer gap resets it to 1.
+ */
+export async function recordDailyLogin(userId: string, date: string) {
+  // Ensure a profile row exists (older users created before this column).
+  const profile =
+    (await prisma.userProfile.findUnique({ where: { userId } })) ??
+    (await prisma.userProfile.create({ data: { userId } }));
+
+  if (profile.lastActiveDate === date) {
+    return { streak: profile.streak, lastActiveDate: profile.lastActiveDate };
+  }
+
+  const gap = profile.lastActiveDate ? isoDaysApart(date, profile.lastActiveDate) : null;
+  const streak = gap === 1 ? profile.streak + 1 : 1;
+
+  const updated = await prisma.userProfile.update({
+    where: { userId },
+    data: { streak, lastActiveDate: date }
+  });
+  return { streak: updated.streak, lastActiveDate: updated.lastActiveDate };
+}
+
+// ─── Motivation Alarms ────────────────────────────────────────────────────────
+
+export interface MotivationAlarmInput {
+  id: string;
+  type: string;
+  hour: number;
+  minute: number;
+  enabled: boolean;
+}
+
+export function getMotivationAlarms(userId: string) {
+  return prisma.motivationAlarm.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } });
+}
+
+// Replace the user's full alarm set in one transaction (the client owns the list
+// and pushes the whole array whenever it changes).
+export async function replaceMotivationAlarms(userId: string, alarms: MotivationAlarmInput[]) {
+  await prisma.$transaction([
+    prisma.motivationAlarm.deleteMany({ where: { userId } }),
+    ...(alarms.length
+      ? [
+          prisma.motivationAlarm.createMany({
+            data: alarms.map((a) => ({
+              userId,
+              alarmId: a.id,
+              type: a.type,
+              hour: a.hour,
+              minute: a.minute,
+              enabled: a.enabled
+            }))
+          })
+        ]
+      : [])
+  ]);
+  return getMotivationAlarms(userId);
 }

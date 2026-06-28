@@ -1,11 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import { CALL_BODY, COACH_NAME } from '../constants/motivation';
 import { MotivationAlarm } from '../types';
 
 const DAILY_IDS_KEY = 'synclife_daily_notification_ids';
 const MOTIVATION_IDS_KEY = 'synclife_motivation_notification_ids';
+
+/** High-importance Android channel so coach calls ring + show as a heads-up. */
+const CALL_CHANNEL_ID = 'motivation-calls';
+/** Default channel for the silent daily tracking reminders. */
+const REMINDER_CHANNEL_ID = 'daily-reminders';
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -14,10 +20,35 @@ Notifications.setNotificationHandler({
     return {
       shouldPlaySound: isCall,
       shouldSetBadge: false,
-      shouldShowAlert: true
+      // SDK 54 replaced the deprecated `shouldShowAlert` with these two fields.
+      shouldShowBanner: true,
+      shouldShowList: true
     };
   }
 });
+
+/**
+ * Creates the Android notification channels. No-op on iOS. Safe to call
+ * repeatedly — channel creation is idempotent. Must run before scheduling,
+ * otherwise notifications land on the low-importance default channel (no sound,
+ * no heads-up).
+ */
+export async function ensureAndroidChannelsAsync() {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(CALL_CHANNEL_ID, {
+    name: 'Coach calls',
+    importance: Notifications.AndroidImportance.MAX,
+    sound: 'default',
+    vibrationPattern: [0, 800, 400, 800],
+    enableVibrate: true,
+    bypassDnd: false,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC
+  });
+  await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
+    name: 'Daily reminders',
+    importance: Notifications.AndroidImportance.DEFAULT
+  });
+}
 
 const dailyReminders = [
   { hour: 8, minute: 0, body: 'Log your breakfast 🍽️' },
@@ -46,20 +77,25 @@ export async function scheduleDailyNotifications() {
   const granted = await requestNotificationPermissions();
   if (!granted) return;
 
+  await ensureAndroidChannelsAsync();
+
   // Cancel only our own previously scheduled reminders so motivation call
   // alarms (tracked separately) survive a reschedule
   await cancelTrackedNotifications(DAILY_IDS_KEY);
 
-  // CalendarTrigger with hour + minute + repeats = true schedules a daily alarm
+  // DAILY trigger repeats every day at the given hour/minute. (The bare
+  // `{ hour, minute, repeats }` shorthand is an iOS-only CALENDAR trigger and
+  // throws on Android.)
   const ids = await Promise.all(
     dailyReminders.map((reminder) =>
       Notifications.scheduleNotificationAsync({
         content: { title: 'SyncLife', body: reminder.body },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: reminder.hour,
           minute: reminder.minute,
-          repeats: true
-        } as any
+          channelId: REMINDER_CHANNEL_ID
+        }
       })
     )
   );
@@ -80,20 +116,26 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[]) {
   const granted = await requestNotificationPermissions();
   if (!granted) return false;
 
+  await ensureAndroidChannelsAsync();
+
+  // DAILY trigger so the coach calls every day at the chosen time. (The bare
+  // `{ hour, minute, repeats }` shorthand is an iOS-only CALENDAR trigger and
+  // throws on Android — which is why no calls were ever firing.)
   const ids = await Promise.all(
     enabled.map((alarm) =>
       Notifications.scheduleNotificationAsync({
         content: {
           title: `📞 Incoming call: ${COACH_NAME}`,
           body: CALL_BODY[alarm.type],
-          sound: true,
+          sound: 'default',
           data: { kind: 'motivation-call', alarmId: alarm.id, alarmType: alarm.type }
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: alarm.hour,
           minute: alarm.minute,
-          repeats: true
-        } as any
+          channelId: CALL_CHANNEL_ID
+        }
       })
     )
   );
@@ -118,7 +160,11 @@ export async function scheduleWaterReminderNotifications(intakeMl: number, goalM
             title: 'Water check',
             body: 'Hydrate now and keep your daily goal moving.'
           },
-          trigger: triggerDate
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: triggerDate,
+            channelId: REMINDER_CHANNEL_ID
+          }
         })
       );
     }

@@ -11,10 +11,12 @@ type WaterState = {
   logs: WaterLog[];
   addWater: (amountMl: number) => Promise<void>;
   totalForDate: (date?: string) => number;
+  setLogs: (logs: WaterLog[]) => void;
 };
 
 export const useWaterStore = create<WaterState>((set, get) => ({
   logs: [],
+  setLogs: (logs) => set({ logs }),
   addWater: async (amountMl) => {
     const date = toISODate();
     const profile = useAuthStore.getState().profile;

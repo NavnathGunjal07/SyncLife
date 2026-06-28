@@ -12,10 +12,12 @@ type MealsState = {
   addMeal: (meal: Meal, quantity: number) => Promise<void>;
   caloriesForDate: (date?: string) => number;
   proteinForDate: (date?: string) => number;
+  setLogs: (logs: MealLog[]) => void;
 };
 
 export const useMealsStore = create<MealsState>((set, get) => ({
   logs: [],
+  setLogs: (logs) => set({ logs }),
   addMeal: async (meal, quantity) => {
     const log: MealLog = {
       mealId: meal.id,

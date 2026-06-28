@@ -27,6 +27,7 @@ model User {
   transactions Transaction[]
   goldEntries  GoldEntry[]
   summaries    DailySummary[]
+  alarms       MotivationAlarm[]
 }
 
 model UserProfile {
@@ -39,6 +40,9 @@ model UserProfile {
   waterGoalMl   Int      @default(2310)
   waterGoalMode String   @default("auto")
   monthlyBudget Float    @default(30000)
+  // Daily-login streak persisted server-side so it survives reinstall/logout.
+  streak         Int      @default(0)
+  lastActiveDate String   @default("")
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -71,10 +75,12 @@ model WorkoutLog {
   caloriesBurned Float
   completed      Boolean
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, date])
+  // One workout record per user per day — enforces "mark complete once a day".
+  @@unique([userId, date])
 }
 
 model WaterLog {
@@ -142,5 +148,23 @@ model DailySummary {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+  @@index([userId])
+}
+
+model MotivationAlarm {
+  id        String   @id @default(cuid())
+  userId    String
+  // Client-generated id so the same alarm maps to one row across syncs.
+  alarmId   String
+  type      String
+  hour      Int
+  minute    Int
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, alarmId])
   @@index([userId])
 }

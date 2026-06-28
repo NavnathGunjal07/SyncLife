@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
@@ -12,6 +13,7 @@ import { useWaterStore } from '../store/water';
 import { toISODate } from '../utils/date';
 
 export function WaterScreen() {
+  const insets = useSafeAreaInsets();
   const water = useWater();
   const addWater = useWaterStore((state) => state.addWater);
   const logs = useWaterStore((state) => state.logs.filter((log) => log.date === toISODate()));
@@ -24,7 +26,7 @@ export function WaterScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>Water</Text>
       <Card style={styles.center}>
         <ProgressRing value={water.progress} size={180} stroke={14} label={`${water.intake}ml`} sublabel={`of ${water.goal}ml`} />

@@ -1,4 +1,4 @@
-import { DailySummary, GoldEntry, MealLog, Transaction, WaterLog, WorkoutLog } from '../types';
+import { DailySummary, GoldEntry, MealLog, MotivationAlarm, Transaction, WaterLog, WorkoutLog } from '../types';
 import { UserProfile } from '../types';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3001';
@@ -90,6 +90,10 @@ export function fetchWorkoutLogs(token: string, date: string) {
   return apiRequest<{ logs: WorkoutLog[] }>(`/api/logs/workouts?date=${date}`, token);
 }
 
+export function fetchWorkoutHistory(token: string, limit = 60) {
+  return apiRequest<{ logs: WorkoutLog[] }>(`/api/logs/workouts/history?limit=${limit}`, token);
+}
+
 // ─── Water Logs ───────────────────────────────────────────────────────────────
 
 export function postWaterLog(token: string, log: WaterLog) {
@@ -156,4 +160,26 @@ export function postGoals(token: string, profile: UserProfile) {
 
 export function fetchGoals(token: string) {
   return apiRequest<{ profile: UserProfile | null }>('/api/goals', token);
+}
+
+// ─── Daily Login / Streak ─────────────────────────────────────────────────────
+
+export function recordDailyLogin(token: string, date: string) {
+  return apiRequest<{ streak: number; lastActiveDate: string }>('/api/streak/login', token, {
+    method: 'POST',
+    body: JSON.stringify({ date })
+  });
+}
+
+// ─── Motivation Alarms ────────────────────────────────────────────────────────
+
+export function fetchAlarms(token: string) {
+  return apiRequest<{ alarms: MotivationAlarm[] }>('/api/alarms', token);
+}
+
+export function putAlarms(token: string, alarms: MotivationAlarm[]) {
+  return apiRequest<{ alarms: MotivationAlarm[] }>('/api/alarms', token, {
+    method: 'PUT',
+    body: JSON.stringify({ alarms })
+  });
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppBottomSheet } from '../components/AppBottomSheet';
@@ -16,6 +17,7 @@ import { inr } from '../utils/formatters';
 const tabs = ['Expenses', 'Income', 'Summary', 'Gold'] as const;
 
 export function FinanceScreen() {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<(typeof tabs)[number]>('Expenses');
   const [sheet, setSheet] = useState<'transaction' | 'gold' | null>(null);
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0] ?? 'Other');
@@ -67,7 +69,7 @@ export function FinanceScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Finance</Text>
         <View style={styles.tabs}>{tabs.map((item) => <Chip key={item} label={item} active={tab === item} onPress={() => setTab(item)} />)}</View>
 

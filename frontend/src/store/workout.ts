@@ -16,8 +16,9 @@ type WorkoutState = {
   setLevel: (level: Level) => void;
   setMode: (mode: WorkoutMode) => void;
   toggleExercise: (name: string) => void;
-  completeWorkout: () => Promise<void>;
+  completeWorkout: () => Promise<boolean>;
   completedToday: () => boolean;
+  setLogs: (logs: WorkoutLog[]) => void;
 };
 
 export const useWorkoutStore = create<WorkoutState>((set, get) => ({
@@ -33,6 +34,12 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({ checked, startedAt: get().startedAt ?? Date.now() });
   },
   completeWorkout: async () => {
+    // One workout may be marked complete per day. Bail out (without creating a
+    // duplicate) if today is already logged — the DB enforces this too via the
+    // unique (userId, date) upsert, this keeps local state honest.
+    if (get().completedToday()) {
+      return false;
+    }
     const profile = useAuthStore.getState().profile;
     const startedAt = get().startedAt ?? Date.now();
     const durationMin = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
@@ -53,6 +60,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     if (token) {
       await appendWorkoutLog(token, log);
     }
+    return true;
   },
-  completedToday: () => get().logs.some((log) => log.date === toISODate() && log.completed)
+  completedToday: () => get().logs.some((log) => log.date === toISODate() && log.completed),
+  setLogs: (logs) => set({ logs })
 }));

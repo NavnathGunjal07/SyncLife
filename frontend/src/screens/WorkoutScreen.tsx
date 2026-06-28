@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
@@ -17,17 +18,22 @@ const levels: Level[] = ['Beginner', 'Intermediate', 'Advanced'];
 const modes: WorkoutMode[] = ['Home', 'Gym'];
 
 export function WorkoutScreen() {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<(typeof tabs)[number]>('Today');
   const workout = useWorkout();
   const { setLevel, setMode, toggleExercise, completeWorkout, logs } = useWorkoutStore();
 
   const complete = async () => {
-    await completeWorkout();
-    Toast.show({ type: 'success', text1: 'Workout saved' });
+    const saved = await completeWorkout();
+    Toast.show(
+      saved
+        ? { type: 'success', text1: 'Workout saved' }
+        : { type: 'info', text1: 'Already completed today', text2: 'Come back tomorrow to log again.' }
+    );
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>Workout</Text>
       <View style={styles.tabs}>{tabs.map((item) => <Chip key={item} label={item} active={tab === item} onPress={() => setTab(item)} />)}</View>
 
@@ -47,7 +53,15 @@ export function WorkoutScreen() {
               />
             )) : <Card><Text style={styles.muted}>Rest day. Stretch lightly or take the win.</Text></Card>}
           </View>
-          <AppButton label="Mark workout complete" icon="checkmark" disabled={!workout.plan.length} onPress={() => void complete()} />
+          {workout.completedToday ? (
+            <Text style={styles.completed}>✓ Today's workout is complete. Logged once per day.</Text>
+          ) : null}
+          <AppButton
+            label={workout.completedToday ? 'Completed for today' : 'Mark workout complete'}
+            icon="checkmark"
+            disabled={!workout.plan.length || workout.completedToday}
+            onPress={() => void complete()}
+          />
         </>
       ) : null}
 
@@ -84,5 +98,6 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stack: { gap: 10 },
   muted: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+  completed: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   day: { color: colors.text, fontSize: 18, fontWeight: '900', textTransform: 'capitalize' }
 });
