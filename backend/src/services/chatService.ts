@@ -35,17 +35,38 @@ const MAX_TOOL_ITERATIONS = 3;
 // ─── Small server-side catalogs (kept tiny; the rich exercise GIF library lives
 // on the client and is resolved there by name) ───────────────────────────────
 
+// `diet` tags each item veg | egg | nonveg so suggestions honour the user's
+// dietary preference. Keep in sync with the client catalog (frontend/src/constants/meals.ts).
 const MEAL_CATALOG = [
-  { id: '1', name: 'Poha', calories: 250, protein: 6, type: 'Breakfast' },
-  { id: '2', name: 'Idli Sambar', calories: 300, protein: 8, type: 'Breakfast' },
-  { id: '3', name: 'Upma', calories: 280, protein: 5, type: 'Breakfast' },
-  { id: '4', name: 'Dal Rice', calories: 450, protein: 12, type: 'Lunch' },
-  { id: '5', name: 'Paneer Curry + Roti', calories: 650, protein: 28, type: 'Lunch' },
-  { id: '6', name: 'Chicken Curry + Rice', calories: 700, protein: 40, type: 'Dinner' },
-  { id: '7', name: 'Khichdi', calories: 350, protein: 10, type: 'Dinner' },
-  { id: '8', name: 'Banana', calories: 120, protein: 1, type: 'Snacks' },
-  { id: '9', name: 'Peanut Chaat', calories: 200, protein: 9, type: 'Snacks' }
+  { id: '1', name: 'Poha', calories: 250, protein: 6, type: 'Breakfast', diet: 'veg' },
+  { id: '2', name: 'Idli Sambar', calories: 300, protein: 8, type: 'Breakfast', diet: 'veg' },
+  { id: '3', name: 'Upma', calories: 280, protein: 5, type: 'Breakfast', diet: 'veg' },
+  { id: '4', name: 'Dal Rice', calories: 450, protein: 12, type: 'Lunch', diet: 'veg' },
+  { id: '5', name: 'Paneer Curry + Roti', calories: 650, protein: 28, type: 'Lunch', diet: 'veg' },
+  { id: '6', name: 'Chicken Curry + Rice', calories: 700, protein: 40, type: 'Dinner', diet: 'nonveg' },
+  { id: '7', name: 'Khichdi', calories: 350, protein: 10, type: 'Dinner', diet: 'veg' },
+  { id: '8', name: 'Banana', calories: 120, protein: 1, type: 'Snacks', diet: 'veg' },
+  { id: '9', name: 'Peanut Chaat', calories: 200, protein: 9, type: 'Snacks', diet: 'veg' },
+  { id: '10', name: 'Egg Bhurji + Toast', calories: 320, protein: 18, type: 'Breakfast', diet: 'egg' },
+  { id: '11', name: 'Boiled Eggs (2)', calories: 150, protein: 12, type: 'Snacks', diet: 'egg' },
+  { id: '12', name: 'Egg Curry + Rice', calories: 550, protein: 22, type: 'Dinner', diet: 'egg' },
+  { id: '13', name: 'Grilled Chicken Salad', calories: 400, protein: 35, type: 'Lunch', diet: 'nonveg' },
+  { id: '14', name: 'Fish Curry + Rice', calories: 600, protein: 34, type: 'Dinner', diet: 'nonveg' },
+  { id: '15', name: 'Chicken Breast + Veggies', calories: 450, protein: 42, type: 'Lunch', diet: 'nonveg' }
 ];
+
+// Maps a dietary preference to the meal `diet` tags it is allowed to see.
+const DIET_ALLOWS: Record<string, string[]> = {
+  veg: ['veg'],
+  vegan: ['veg'],
+  eggetarian: ['veg', 'egg'],
+  nonveg: ['veg', 'egg', 'nonveg']
+};
+
+function mealsForPreference(preference: string | undefined) {
+  const allowed = DIET_ALLOWS[preference ?? 'nonveg'] ?? DIET_ALLOWS.nonveg!;
+  return MEAL_CATALOG.filter((m) => allowed.includes(m.diet));
+}
 
 // Canonical exercise names the client can render a GIF for (keys of the client
 // EXERCISE_LIBRARY). The model is told to use these names with show_exercise.
@@ -223,7 +244,8 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'update_profile',
-      description: 'Update profile/goal fields the user mentions.',
+      description:
+        'Update profile/goal/preference fields the user mentions (e.g. "I\'m vegetarian now", "I train at the gym", "make me intermediate", "no onion or garlic").',
       parameters: {
         type: 'object',
         properties: {
@@ -232,7 +254,11 @@ const TOOLS = [
           fitnessGoal: { type: 'string', enum: ['Lose weight', 'Maintain', 'Build muscle'] },
           calorieTarget: { type: 'number' },
           waterGoalMl: { type: 'number' },
-          monthlyBudget: { type: 'number' }
+          monthlyBudget: { type: 'number' },
+          dietaryPreference: { type: 'string', enum: ['veg', 'eggetarian', 'nonveg', 'vegan'] },
+          avoidFoods: { type: 'string', description: 'Comma-separated foods to avoid, e.g. "onion, garlic".' },
+          workoutMode: { type: 'string', enum: ['Home', 'Gym'] },
+          workoutLevel: { type: 'string', enum: ['Beginner', 'Intermediate', 'Advanced'] }
         }
       }
     }
@@ -342,7 +368,8 @@ async function executeTool(userId: string, name: string, args: unknown, date: st
 
     case 'suggest_meals': {
       const a = z.object({ mealType: z.string().optional(), maxCalories: z.number().optional() }).parse(args);
-      let list = MEAL_CATALOG;
+      const profile = await getUserProfile(userId);
+      let list = mealsForPreference(profile?.dietaryPreference);
       if (a.mealType) list = list.filter((m) => m.type.toLowerCase() === a.mealType!.toLowerCase());
       if (a.maxCalories) list = list.filter((m) => m.calories <= a.maxCalories!);
       list = [...list].sort((x, y) => y.protein - x.protein).slice(0, 5);
@@ -443,7 +470,11 @@ async function executeTool(userId: string, name: string, args: unknown, date: st
           fitnessGoal: z.enum(['Lose weight', 'Maintain', 'Build muscle']).optional(),
           calorieTarget: z.number().positive().optional(),
           waterGoalMl: z.number().positive().optional(),
-          monthlyBudget: z.number().nonnegative().optional()
+          monthlyBudget: z.number().nonnegative().optional(),
+          dietaryPreference: z.enum(['veg', 'eggetarian', 'nonveg', 'vegan']).optional(),
+          avoidFoods: z.string().max(200).optional(),
+          workoutMode: z.enum(['Home', 'Gym']).optional(),
+          workoutLevel: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional()
         })
         .parse(args);
       if (Object.keys(a).length === 0) return { result: { updated: false } };
@@ -557,6 +588,9 @@ function buildSystemPrompt(ctx: ChatContext): string {
     `- Name: ${ctx.name || 'unknown'}`,
     p ? `- Weight ${p.weightKg}kg, Height ${p.heightCm}cm${p.bmi ? `, BMI ${p.bmi}` : ''}, Goal ${p.fitnessGoal}` : '- Profile: not set',
     p ? `- Calorie target ${p.calorieTarget}, Water goal ${p.waterGoalMl}ml, Fasting ${p.fastingPlan}` : '',
+    p
+      ? `- Diet: ${p.dietaryPreference}${p.avoidFoods ? ` (avoids ${p.avoidFoods})` : ''} — only suggest meals that fit this. Training: ${p.workoutLevel} level, ${p.workoutMode} workouts.`
+      : '',
     `- Today: ${Math.round(ctx.totals.caloriesConsumed)} kcal eaten, ${Math.round(ctx.totals.waterMl)}ml water, workout ${ctx.totals.workoutCompleted ? 'done' : 'not done'}`,
     `- Daily streak: ${ctx.streak} days`,
     ctx.recentWorkouts.length ? `- Recent workouts: ${ctx.recentWorkouts.join('; ')}` : '',

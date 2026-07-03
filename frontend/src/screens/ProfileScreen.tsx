@@ -10,13 +10,17 @@ import { Chip } from '../components/Chip';
 import { MotivationAlarmsCard } from '../components/MotivationAlarmsCard';
 import { QuoteCard } from '../components/QuoteCard';
 import { SavedMemoriesCard } from '../components/SavedMemoriesCard';
+import { DIETARY_PREFERENCES } from '../constants/meals';
 import { colors } from '../constants/theme';
 import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { useAuthStore } from '../store/auth';
 import { useChatStore } from '../store/chat';
-import { UserProfile } from '../types';
+import { useWorkoutStore } from '../store/workout';
+import { Level, UserProfile, WorkoutMode } from '../types';
 
 const goals: UserProfile['fitnessGoal'][] = ['Lose weight', 'Maintain', 'Build muscle'];
+const workoutModes: WorkoutMode[] = ['Home', 'Gym'];
+const workoutLevels: Level[] = ['Beginner', 'Intermediate', 'Advanced'];
 
 type NavProp = NativeStackNavigationProp<{ Auth: undefined; AppTabs: undefined }>;
 
@@ -24,6 +28,12 @@ export function ProfileScreen() {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const { user, profile, updateProfile, syncNow, logout } = useAuthStore();
+  // Workout mode/level live in the workout store; its setters also persist to the
+  // profile, so editing here keeps the Workout screen and backend in sync.
+  const workoutMode = useWorkoutStore((state) => state.mode);
+  const workoutLevel = useWorkoutStore((state) => state.level);
+  const setWorkoutMode = useWorkoutStore((state) => state.setMode);
+  const setWorkoutLevel = useWorkoutStore((state) => state.setLevel);
   const { quote, gradient } = useRotatingQuote();
 
   const updateNumber = (key: keyof Pick<UserProfile, 'weightKg' | 'heightCm' | 'calorieTarget' | 'waterGoalMl' | 'monthlyBudget'>, value: string) => {
@@ -78,6 +88,47 @@ export function ProfileScreen() {
         <Field label="Monthly budget (₹)" value={String(profile.monthlyBudget)} onChangeText={(text) => updateNumber('monthlyBudget', text)} />
       </Card>
 
+      <Card style={styles.form}>
+        <Text style={styles.sectionTitle}>Meal preferences</Text>
+        <Text style={styles.label}>Dietary preference</Text>
+        <View style={styles.tabs}>
+          {DIETARY_PREFERENCES.map(({ value, label }) => (
+            <Chip
+              key={value}
+              label={label}
+              active={profile.dietaryPreference === value}
+              onPress={() => void updateProfile({ dietaryPreference: value })}
+            />
+          ))}
+        </View>
+        <Text style={styles.hint}>Filters the meal catalog and what the coach suggests.</Text>
+        <View>
+          <Text style={styles.label}>Foods to avoid</Text>
+          <TextInput
+            value={profile.avoidFoods}
+            onChangeText={(text) => void updateProfile({ avoidFoods: text })}
+            placeholder="e.g. onion, garlic, mushroom"
+            placeholderTextColor={colors.textMuted}
+            style={styles.input}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Workout preferences</Text>
+        <Text style={styles.label}>Default location</Text>
+        <View style={styles.tabs}>
+          {workoutModes.map((mode) => (
+            <Chip key={mode} label={mode} active={workoutMode === mode} onPress={() => setWorkoutMode(mode)} />
+          ))}
+        </View>
+        <Text style={styles.label}>Intensity level</Text>
+        <View style={styles.tabs}>
+          {workoutLevels.map((level) => (
+            <Chip key={level} label={level} active={workoutLevel === level} onPress={() => setWorkoutLevel(level)} />
+          ))}
+        </View>
+      </Card>
+
       <MotivationAlarmsCard />
 
       <SavedMemoriesCard />
@@ -117,6 +168,8 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontSize: 20, fontWeight: '900' },
   muted: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
   form: { gap: 14 },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  hint: { color: colors.textMuted, fontSize: 12, marginTop: -6 },
   label: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
   input: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, padding: 12 },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }

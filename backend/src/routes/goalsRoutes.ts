@@ -12,7 +12,12 @@ const goalsSchema = z.object({
     calorieTarget: z.number().positive(),
     waterGoalMl: z.number().positive(),
     waterGoalMode: z.enum(['auto', 'manual']),
-    monthlyBudget: z.number().nonnegative()
+    monthlyBudget: z.number().nonnegative(),
+    // Customization / preferences — optional for backward compatibility.
+    dietaryPreference: z.enum(['veg', 'eggetarian', 'nonveg', 'vegan']).optional(),
+    avoidFoods: z.string().max(200).optional(),
+    workoutMode: z.enum(['Home', 'Gym']).optional(),
+    workoutLevel: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional()
   })
 });
 

@@ -13,7 +13,11 @@ const defaultProfile: UserProfile = {
   calorieTarget: 2200,
   waterGoalMl: waterGoalForWeight(70),
   waterGoalMode: 'auto',
-  monthlyBudget: 30000
+  monthlyBudget: 30000,
+  dietaryPreference: 'veg',
+  avoidFoods: '',
+  workoutMode: 'Home',
+  workoutLevel: 'Beginner'
 };
 
 type AuthState = {
@@ -86,6 +90,16 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'synclife_user_profile',
       storage: createJSONStorage(() => AsyncStorage),
+      // Deep-merge the persisted profile onto defaults so profiles saved before
+      // newer fields existed (e.g. dietaryPreference) still have every key.
+      merge: (persisted, current) => {
+        const prev = (persisted ?? {}) as Partial<AuthState>;
+        return {
+          ...current,
+          ...prev,
+          profile: { ...current.profile, ...(prev.profile ?? {}) }
+        };
+      },
       onRehydrateStorage: () => (state) => {
         state?._setHydrated();
       }

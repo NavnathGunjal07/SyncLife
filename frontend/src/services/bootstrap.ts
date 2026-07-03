@@ -40,6 +40,10 @@ function pickProfile(p: Partial<UserProfile>): Partial<UserProfile> {
   if (typeof p.waterGoalMl === 'number') out.waterGoalMl = p.waterGoalMl;
   if (p.waterGoalMode) out.waterGoalMode = p.waterGoalMode;
   if (typeof p.monthlyBudget === 'number') out.monthlyBudget = p.monthlyBudget;
+  if (p.dietaryPreference) out.dietaryPreference = p.dietaryPreference;
+  if (typeof p.avoidFoods === 'string') out.avoidFoods = p.avoidFoods;
+  if (p.workoutMode) out.workoutMode = p.workoutMode;
+  if (p.workoutLevel) out.workoutLevel = p.workoutLevel;
   return out;
 }
 
@@ -72,7 +76,13 @@ async function run() {
   // Profile (does not overwrite a user mid-edit since this runs once on launch).
   try {
     const { profile } = await fetchGoals(token);
-    if (profile) useAuthStore.getState().hydrateProfile(pickProfile(profile));
+    if (profile) {
+      const picked = pickProfile(profile);
+      useAuthStore.getState().hydrateProfile(picked);
+      // Reflect the saved training preferences in the workout store.
+      const { workoutMode, workoutLevel } = useAuthStore.getState().profile;
+      useWorkoutStore.getState().hydrateFromProfile(workoutMode, workoutLevel);
+    }
   } catch {
     /* keep existing profile */
   }
@@ -195,7 +205,11 @@ export async function refreshDomains(domains: string[]): Promise<void> {
           }
           case 'profile': {
             const { profile } = await fetchGoals(token);
-            if (profile) useAuthStore.getState().hydrateProfile(pickProfile(profile));
+            if (profile) {
+              useAuthStore.getState().hydrateProfile(pickProfile(profile));
+              const { workoutMode, workoutLevel } = useAuthStore.getState().profile;
+              useWorkoutStore.getState().hydrateFromProfile(workoutMode, workoutLevel);
+            }
             break;
           }
         }

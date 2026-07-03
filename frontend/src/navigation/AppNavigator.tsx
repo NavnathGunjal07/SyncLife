@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ProgressPulse } from '../components/ProgressPulse';
 import { colors } from '../constants/theme';
 import { hydrateAll } from '../services/bootstrap';
 import { AssistantScreen } from '../screens/AssistantScreen';
@@ -60,6 +61,7 @@ function AssistantTabButton({ children, onPress, accessibilityState }: BottomTab
 }
 
 const tabStyles = StyleSheet.create({
+  root: { flex: 1 },
   centerWrap: { alignItems: 'center', justifyContent: 'center', width: 64 },
   centerButton: {
     alignItems: 'center',
@@ -83,29 +85,33 @@ export function AppNavigator() {
   }, []);
 
   return (
-    <Tab.Navigator
-      initialRouteName="Assistant"
-      screenOptions={({ route }: { route: { name: keyof AppTabParamList } }): BottomTabNavigationOptions => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 64, paddingBottom: 8 },
-        tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name={icons[route.name]} size={size} color={color} />
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeNavigator} />
-      <Tab.Screen name="Meals" component={MealsScreen} />
-      <Tab.Screen
-        name="Assistant"
-        component={AssistantScreen}
-        options={{
-          tabBarLabel: () => null,
-          tabBarButton: (props: BottomTabBarButtonProps) => <AssistantTabButton {...props} />,
-          tabBarIcon: () => <Ionicons name="sparkles" size={26} color={colors.background} />
-        }}
-      />
-      <Tab.Screen name="Workout" component={WorkoutScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
+    <View style={tabStyles.root}>
+      <Tab.Navigator
+        initialRouteName="Assistant"
+        screenOptions={({ route }: { route: { name: keyof AppTabParamList } }): BottomTabNavigationOptions => ({
+          headerShown: false,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 64, paddingBottom: 8 },
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name={icons[route.name]} size={size} color={color} />
+        })}
+      >
+        <Tab.Screen name="Home" component={HomeNavigator} />
+        <Tab.Screen name="Meals" component={MealsScreen} />
+        <Tab.Screen
+          name="Assistant"
+          component={AssistantScreen}
+          options={{
+            tabBarLabel: () => null,
+            tabBarButton: (props: BottomTabBarButtonProps) => <AssistantTabButton {...props} />,
+            tabBarIcon: () => <Ionicons name="sparkles" size={26} color={colors.background} />
+          }}
+        />
+        <Tab.Screen name="Workout" component={WorkoutScreen} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+      {/* Global floating progress + motivation nudge, above the tab bar. */}
+      <ProgressPulse />
+    </View>
   );
 }

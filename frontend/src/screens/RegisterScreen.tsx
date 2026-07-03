@@ -85,7 +85,7 @@ export function RegisterScreen() {
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="Navnath Gunjal"
+            placeholder="John Doe"
             placeholderTextColor={colors.textMuted}
             autoCapitalize="words"
             returnKeyType="next"
@@ -95,7 +95,7 @@ export function RegisterScreen() {
             style={styles.input}
             value={username}
             onChangeText={setUsername}
-            placeholder="navnath_123"
+            placeholder="john_doe123"
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}

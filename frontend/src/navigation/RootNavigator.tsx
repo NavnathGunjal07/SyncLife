@@ -1,4 +1,4 @@
-import { createNavigationContainerRef, NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
@@ -10,9 +10,9 @@ import { useAuthStore } from '../store/auth';
 import { MotivationType, RootStackParamList } from '../types';
 import { AppNavigator } from './AppNavigator';
 import { AuthNavigator } from './AuthNavigator';
+import { navigationRef } from './navigationRef';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 type Props = {
   onReady?: () => void;

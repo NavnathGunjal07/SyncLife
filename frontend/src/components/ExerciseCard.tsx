@@ -16,9 +16,11 @@ type Props = {
   onToggle: () => void;
   /** Hide the completion checkbox — used when browsing demos (e.g. rest day). */
   hideToggle?: boolean;
+  /** When provided, shows a remove (−) button to drop the exercise from the workout. */
+  onRemove?: () => void;
 };
 
-export function ExerciseCard({ exercise, mode, checked, onToggle, hideToggle }: Props) {
+export function ExerciseCard({ exercise, mode, checked, onToggle, hideToggle, onRemove }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const displayName = mode === 'Home' && exercise.homeAlt ? exercise.homeAlt : exercise.name;
   const detail = exercise.durationSec ? `${Math.round(exercise.durationSec / 60)} min` : `${exercise.sets} x ${exercise.reps}`;
@@ -48,6 +50,11 @@ export function ExerciseCard({ exercise, mode, checked, onToggle, hideToggle }: 
             <Text style={styles.meta}>{detail}</Text>
           </View>
         </Pressable>
+        {onRemove ? (
+          <Pressable onPress={onRemove} hitSlop={12} style={styles.remove}>
+            <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
         {hideToggle ? (
           <Ionicons name="play-circle-outline" size={26} color={colors.textMuted} />
         ) : (
@@ -90,6 +97,7 @@ const styles = StyleSheet.create({
     width: 48
   },
   thumbImage: { height: '100%', width: '100%' },
+  remove: { marginRight: 2 },
   textBlock: {
     flex: 1
   },

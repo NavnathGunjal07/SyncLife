@@ -11,17 +11,19 @@ import { Chip } from '../components/Chip';
 import { MealCard } from '../components/MealCard';
 import { ProgressRing } from '../components/ProgressRing';
 import { QuoteCard } from '../components/QuoteCard';
-import { MEALS, MEAL_TYPES } from '../constants/meals';
+import { DietIndicator } from '../components/DietIndicator';
+import { MEAL_TYPES, mealsForPreference } from '../constants/meals';
 import { colors } from '../constants/theme';
 import { useCalories } from '../hooks/useCalories';
 import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { fetchMealHistory, parseMeal } from '../services/api';
 import { useAuthStore } from '../store/auth';
 import { useMealsStore } from '../store/meals';
-import { Meal, MealHistoryItem, MealType, ParsedMeal } from '../types';
+import { Meal, MealDiet, MealHistoryItem, MealType, ParsedMeal } from '../types';
 import { toISODate } from '../utils/date';
 
 const tabs = ['Log', 'History'] as const;
+const dietFilterLabel: Record<MealDiet, string> = { veg: 'Veg', egg: 'Egg', nonveg: 'Non-veg' };
 
 function dateLabel(date: string): string {
   if (date === toISODate()) return 'Today';
@@ -32,8 +34,10 @@ function dateLabel(date: string): string {
 export function MealsScreen() {
   const insets = useSafeAreaInsets();
   const token = useAuthStore((state) => state.accessToken);
+  const dietaryPreference = useAuthStore((state) => state.profile.dietaryPreference);
   const [tab, setTab] = useState<(typeof tabs)[number]>('Log');
   const [mealType, setMealType] = useState<MealType>('Breakfast');
+  const [dietFilter, setDietFilter] = useState<MealDiet | 'all'>('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Meal | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -51,9 +55,23 @@ export function MealsScreen() {
     (state) => state.logs.filter((log) => log.date === toISODate()).length
   );
 
+  // Catalog restricted to what the user's dietary preference allows.
+  const allowedMeals = useMemo(() => mealsForPreference(dietaryPreference), [dietaryPreference]);
+  // Diet sub-filters worth showing (only those the preference actually permits).
+  const dietOptions = useMemo(() => {
+    const present = [...new Set(allowedMeals.map((m) => m.diet))];
+    return present.length > 1 ? (['all', ...present] as const) : [];
+  }, [allowedMeals]);
+
   const filtered = useMemo(
-    () => MEALS.filter((meal) => meal.type === mealType && meal.name.toLowerCase().includes(query.toLowerCase())),
-    [query, mealType]
+    () =>
+      allowedMeals.filter(
+        (meal) =>
+          meal.type === mealType &&
+          (dietFilter === 'all' || meal.diet === dietFilter) &&
+          meal.name.toLowerCase().includes(query.toLowerCase())
+      ),
+    [allowedMeals, query, mealType, dietFilter]
   );
 
   const loadHistory = async () => {
@@ -73,6 +91,12 @@ export function MealsScreen() {
     if (tab === 'History') void loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  // A stale sub-filter (e.g. "Non-veg" after switching to a veg diet) would hide
+  // everything — reset to "All" whenever the dietary preference changes.
+  useEffect(() => {
+    setDietFilter('all');
+  }, [dietaryPreference]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MealHistoryItem[]>();
@@ -157,8 +181,28 @@ export function MealsScreen() {
             </Card>
 
             <View style={styles.tabs}>{MEAL_TYPES.map((type) => <Chip key={type} label={type} active={mealType === type} onPress={() => setMealType(type)} />)}</View>
+            {dietOptions.length ? (
+              <View style={styles.tabs}>
+                {dietOptions.map((option) => (
+                  <Chip
+                    key={option}
+                    label={option === 'all' ? 'All' : dietFilterLabel[option]}
+                    active={dietFilter === option}
+                    onPress={() => setDietFilter(option)}
+                  />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.muted}>Showing {dietaryPreference} meals · change your diet in Profile.</Text>
+            )}
             <TextInput value={query} onChangeText={setQuery} placeholder="Search saved meals" placeholderTextColor={colors.textMuted} style={styles.input} />
-            <View style={styles.stack}>{filtered.map((meal) => <MealCard key={meal.id} meal={meal} onPress={() => setSelected(meal)} />)}</View>
+            <View style={styles.stack}>
+              {filtered.length ? (
+                filtered.map((meal) => <MealCard key={meal.id} meal={meal} onPress={() => setSelected(meal)} />)
+              ) : (
+                <Text style={styles.muted}>No {mealType.toLowerCase()} options here. Try another type, or describe your meal above.</Text>
+              )}
+            </View>
           </>
         ) : (
           <View style={styles.stack}>
@@ -194,7 +238,10 @@ export function MealsScreen() {
       <AppBottomSheet visible={Boolean(selected)} onClose={() => setSelected(null)}>
         {selected ? (
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{selected.name}</Text>
+            <View style={styles.sheetTitleRow}>
+              <DietIndicator diet={selected.diet} size={18} />
+              <Text style={styles.sheetTitle}>{selected.name}</Text>
+            </View>
             <Text style={styles.muted}>{Math.round(selected.calories * quantity)} kcal · {Math.round(selected.protein * quantity)}g protein</Text>
             <View style={styles.stepper}>
               <AppButton label="-" variant="outline" onPress={() => setQuantity((value) => Math.max(0.5, value - 0.5))} />
@@ -282,7 +329,8 @@ const styles = StyleSheet.create({
   mealName: { color: colors.text, flex: 1, fontSize: 15 },
   mealMeta: { color: colors.textMuted, fontSize: 13 },
   sheet: { gap: 16 },
-  sheetTitle: { color: colors.text, fontSize: 24, fontWeight: '900' },
+  sheetTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  sheetTitle: { color: colors.text, fontSize: 24, fontWeight: '900', flexShrink: 1 },
   warn: { color: colors.warning, fontSize: 13 },
   label: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 8 },
   macroRow: { flexDirection: 'row', gap: 12 },

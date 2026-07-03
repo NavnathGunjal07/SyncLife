@@ -77,6 +77,12 @@ export interface ProfileInput {
   waterGoalMl: number;
   waterGoalMode: string;
   monthlyBudget: number;
+  // Customization / preferences (optional so older clients that omit them keep
+  // whatever is already stored — see upsertUserProfile).
+  dietaryPreference?: string;
+  avoidFoods?: string;
+  workoutMode?: string;
+  workoutLevel?: string;
 }
 
 // ─── Meal Logs ────────────────────────────────────────────────────────────────
@@ -255,27 +261,27 @@ export function getDailySummary(userId: string, date: string) {
 // ─── User Profile / Goals ─────────────────────────────────────────────────────
 
 export function upsertUserProfile(userId: string, profile: ProfileInput) {
+  // Only include preference fields that were actually provided so a payload from
+  // an older client can't reset a saved dietary/workout preference to its default.
+  const prefs = {
+    ...(profile.dietaryPreference !== undefined && { dietaryPreference: profile.dietaryPreference }),
+    ...(profile.avoidFoods !== undefined && { avoidFoods: profile.avoidFoods }),
+    ...(profile.workoutMode !== undefined && { workoutMode: profile.workoutMode }),
+    ...(profile.workoutLevel !== undefined && { workoutLevel: profile.workoutLevel })
+  };
+  const base = {
+    weightKg: profile.weightKg,
+    heightCm: profile.heightCm,
+    fitnessGoal: profile.fitnessGoal,
+    calorieTarget: profile.calorieTarget,
+    waterGoalMl: profile.waterGoalMl,
+    waterGoalMode: profile.waterGoalMode,
+    monthlyBudget: profile.monthlyBudget
+  };
   return prisma.userProfile.upsert({
     where: { userId },
-    update: {
-      weightKg: profile.weightKg,
-      heightCm: profile.heightCm,
-      fitnessGoal: profile.fitnessGoal,
-      calorieTarget: profile.calorieTarget,
-      waterGoalMl: profile.waterGoalMl,
-      waterGoalMode: profile.waterGoalMode,
-      monthlyBudget: profile.monthlyBudget
-    },
-    create: {
-      userId,
-      weightKg: profile.weightKg,
-      heightCm: profile.heightCm,
-      fitnessGoal: profile.fitnessGoal,
-      calorieTarget: profile.calorieTarget,
-      waterGoalMl: profile.waterGoalMl,
-      waterGoalMode: profile.waterGoalMode,
-      monthlyBudget: profile.monthlyBudget
-    }
+    update: { ...base, ...prefs },
+    create: { userId, ...base, ...prefs }
   });
 }
 
@@ -369,6 +375,10 @@ export interface ProfilePatch {
   runningTime?: string | null;
   fastingPlan?: string;
   setupComplete?: boolean;
+  dietaryPreference?: string;
+  avoidFoods?: string;
+  workoutMode?: string;
+  workoutLevel?: string;
 }
 
 // Patch only the provided fields. Ensures a profile row exists first (older

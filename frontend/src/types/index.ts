@@ -2,8 +2,15 @@ export type MealType = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snacks';
 export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type Level = 'Beginner' | 'Intermediate' | 'Advanced';
 export type WorkoutMode = 'Home' | 'Gym';
+// A muscle-group / training focus the user can pick for a session.
+export type WorkoutFocus = 'Push' | 'Pull' | 'Legs' | 'Shoulders & Core' | 'Full Body' | 'Cardio';
 export type TransactionType = 'expense' | 'income';
 export type GoldCategory = 'Jewellery' | 'Coins' | 'Digital Gold' | 'SIP';
+
+// What a catalog meal contains. The user's DietaryPreference decides which of
+// these tags they're shown (see mealsForPreference).
+export type MealDiet = 'veg' | 'egg' | 'nonveg';
+export type DietaryPreference = 'veg' | 'eggetarian' | 'nonveg' | 'vegan';
 
 export interface Meal {
   id: string;
@@ -11,6 +18,7 @@ export interface Meal {
   calories: number;
   protein: number;
   type: MealType;
+  diet: MealDiet;
 }
 
 export interface MealLog {
@@ -123,6 +131,11 @@ export interface UserProfile {
   waterGoalMl: number;
   waterGoalMode: 'auto' | 'manual';
   monthlyBudget: number;
+  // Meal + workout customization.
+  dietaryPreference: DietaryPreference;
+  avoidFoods: string;
+  workoutMode: WorkoutMode;
+  workoutLevel: Level;
 }
 
 export interface AuthUser {

@@ -197,6 +197,24 @@ export const FINANCE_QUOTES: Quote[] = [
   { text: 'Don’t go broke trying to look rich.', author: 'Unknown' }
 ];
 
+// ─── Short, punchy lines for the floating progress nudge (must fit one line) ──
+export const ACTION_QUOTES: Quote[] = [
+  { text: 'The only bad workout is the one that didn’t happen.', author: 'Unknown' },
+  { text: 'One more rep, one more day. Don’t break the chain.', author: 'Unknown' },
+  { text: 'Show up even when you don’t feel like it.', author: 'Unknown' },
+  { text: 'Progress, not perfection.', author: 'Unknown' },
+  { text: 'You’re one workout away from a good mood.', author: 'Unknown' },
+  { text: 'Discipline today, freedom tomorrow.', author: 'Unknown' },
+  { text: 'Little by little, a little becomes a lot.', author: 'Proverb' },
+  { text: 'Start now. Start where you are.', author: 'Unknown' },
+  { text: 'Sore today, strong tomorrow.', author: 'Unknown' },
+  { text: 'Don’t stop until you’re proud.', author: 'Unknown' },
+  { text: 'Small steps every single day.', author: 'Unknown' },
+  { text: 'Be stronger than your excuses.', author: 'Unknown' },
+  { text: 'Trust the process. Stack the days.', author: 'Unknown' },
+  { text: 'Finish today what your future self will thank you for.', author: 'Unknown' }
+];
+
 // ─── Random pickers (new selection each call → fresh on every app open) ───────
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)] as T;
@@ -204,4 +222,5 @@ function randomItem<T>(arr: T[]): T {
 
 export const getRandomQuote = (): Quote => randomItem(MOTIVATION_QUOTES);
 export const getRandomFinanceQuote = (): Quote => randomItem(FINANCE_QUOTES);
+export const getRandomActionQuote = (): Quote => randomItem(ACTION_QUOTES);
 export const getRandomGradient = (): [string, string] => randomItem(QUOTE_GRADIENTS);
