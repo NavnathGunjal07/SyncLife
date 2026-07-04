@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ProgressPulse } from '../components/ProgressPulse';
+import { ProgressNotifier } from '../components/ProgressNotifier';
 import { colors } from '../constants/theme';
 import { hydrateAll } from '../services/bootstrap';
 import { AssistantScreen } from '../screens/AssistantScreen';
@@ -110,8 +110,8 @@ export function AppNavigator() {
         <Tab.Screen name="Workout" component={WorkoutScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
-      {/* Global floating progress + motivation nudge, above the tab bar. */}
-      <ProgressPulse />
+      {/* Headless: keeps the ongoing progress + motivation phone notification live. */}
+      <ProgressNotifier />
     </View>
   );
 }

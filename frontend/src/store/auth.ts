@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { postGoals } from '../services/api';
+import { clearProgressNotification } from '../services/notifications';
 import { AuthUser, UserProfile } from '../types';
 import { waterGoalForWeight } from '../utils/calculators';
 
@@ -85,6 +86,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         set({ user: null, accessToken: null, streak: 0 });
+        await clearProgressNotification();
       }
     }),
     {

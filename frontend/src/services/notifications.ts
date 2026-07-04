@@ -9,6 +9,12 @@ import { MotivationAlarm, Ringtone } from '../types';
 const DAILY_IDS_KEY = 'synclife_daily_notification_ids';
 const MOTIVATION_IDS_KEY = 'synclife_motivation_notification_ids';
 
+// Stable id + dedicated silent channel for the ongoing "today's progress" tray
+// notification. Reusing the id means every update replaces the same notification
+// instead of stacking new ones.
+export const PROGRESS_NOTIFICATION_ID = 'synclife-progress';
+const PROGRESS_CHANNEL_ID = 'progress-tracker';
+
 // An Android notification channel's sound is immutable after creation, so we
 // keep one high-importance channel PER ringtone and schedule calls on the
 // channel that matches the user's choice. Bump the version to force-recreate
@@ -21,8 +27,20 @@ const CALL_VIBRATION_PATTERN = [0, 900, 450, 900, 450, 1200];
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
+    const kind = notification.request.content.data?.kind;
+    // The ongoing progress tracker updates often — keep it silent and banner-less
+    // while the app is foregrounded, but still listed in the tray.
+    if (kind === 'progress') {
+      return {
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: true,
+        priority: Notifications.AndroidNotificationPriority.LOW
+      };
+    }
     // Motivation calls ring like a real incoming call; other reminders stay silent
-    const isCall = notification.request.content.data?.kind === 'motivation-call';
+    const isCall = kind === 'motivation-call';
     return {
       shouldPlaySound: isCall,
       shouldSetBadge: false,
@@ -64,6 +82,13 @@ export async function ensureAndroidChannelsAsync() {
   await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
     name: 'Daily reminders',
     importance: Notifications.AndroidImportance.DEFAULT
+  });
+  // LOW importance so the ongoing progress notification never buzzes or shows a
+  // heads-up when it refreshes — it just sits quietly in the tray.
+  await Notifications.setNotificationChannelAsync(PROGRESS_CHANNEL_ID, {
+    name: 'Progress tracker',
+    importance: Notifications.AndroidImportance.LOW,
+    showBadge: false
   });
 }
 
@@ -167,6 +192,70 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[], ringt
   );
   await AsyncStorage.setItem(MOTIVATION_IDS_KEY, JSON.stringify(ids));
   return true;
+}
+
+// ─── Ongoing progress notification ────────────────────────────────────────────
+
+export interface ProgressSnapshot {
+  overall: number; // 0-100
+  streak: number;
+  caloriesConsumed: number;
+  calorieTarget: number;
+  waterMl: number;
+  waterGoalMl: number;
+  workoutLabel: string; // "2/4 done" | "Completed" | "Rest day"
+  quote: string; // one strong motivational line
+}
+
+// A 10-segment text bar, e.g. "▓▓▓▓▓░░░░░".
+function progressBar(percent: number): string {
+  const filled = Math.round(Math.max(0, Math.min(100, percent)) / 10);
+  return '▓'.repeat(filled) + '░'.repeat(10 - filled);
+}
+
+/**
+ * Shows (or refreshes) the sticky "today's progress" notification in the phone's
+ * tray — a compact everything-at-a-glance card with a strong motivational line.
+ * Reuses a fixed id so repeated calls update the same notification in place.
+ * Silent + ongoing on Android; a normal notification on iOS.
+ */
+export async function showProgressNotification(s: ProgressSnapshot) {
+  const granted = await requestNotificationPermissions();
+  if (!granted) return;
+  await ensureAndroidChannelsAsync();
+
+  const overall = Math.round(Math.max(0, Math.min(100, s.overall)));
+  const body =
+    `🔥 ${s.streak}-day streak\n` +
+    `🍽️ ${Math.round(s.caloriesConsumed)}/${s.calorieTarget} kcal   ` +
+    `💧 ${Math.round(s.waterMl)}/${s.waterGoalMl} ml   ` +
+    `🏋️ ${s.workoutLabel}\n\n` +
+    `💡 ${s.quote}`;
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: PROGRESS_NOTIFICATION_ID,
+    content: {
+      title: `Today ${overall}%  ${progressBar(overall)}`,
+      body,
+      color: '#22C55E',
+      // Android: keep it pinned and non-dismissable like a live status card.
+      sticky: true,
+      autoDismiss: false,
+      data: { kind: 'progress' }
+    },
+    // A tiny delay lets us pin it to the silent LOW channel (immediate `null`
+    // triggers can't carry a channelId). Same id ⇒ in-place update.
+    trigger:
+      Platform.OS === 'android'
+        ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: PROGRESS_CHANNEL_ID }
+        : null
+  });
+}
+
+/** Removes the ongoing progress notification (e.g. on logout). */
+export async function clearProgressNotification() {
+  await Notifications.cancelScheduledNotificationAsync(PROGRESS_NOTIFICATION_ID).catch(() => undefined);
+  await Notifications.dismissNotificationAsync(PROGRESS_NOTIFICATION_ID).catch(() => undefined);
 }
 
 export async function scheduleWaterReminderNotifications(intakeMl: number, goalMl: number) {
