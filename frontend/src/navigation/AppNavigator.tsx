@@ -2,14 +2,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarButtonProps, BottomTabNavigationOptions, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, View } from 'react-native';
 
 import { ProgressNotifier } from '../components/ProgressNotifier';
 import { colors } from '../constants/theme';
+import { registerBackgroundRefresh } from '../services/background';
 import { hydrateAll } from '../services/bootstrap';
+import { useStepsStore } from '../store/steps';
 import { AssistantScreen } from '../screens/AssistantScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { FinanceScreen } from '../screens/FinanceScreen';
+import { HabitTrackerScreen } from '../screens/HabitTrackerScreen';
 import { MealsScreen } from '../screens/MealsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { WaterScreen } from '../screens/WaterScreen';
@@ -20,6 +23,7 @@ type HomeStackParamList = {
   Dashboard: undefined;
   Water: undefined;
   Finance: undefined;
+  Habits: undefined;
 };
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
@@ -32,6 +36,7 @@ function HomeNavigator() {
       <HomeStack.Screen name="Water" component={WaterScreen} />
       {/* Finance moved off the tab bar — reached from the Dashboard cards. */}
       <HomeStack.Screen name="Finance" component={FinanceScreen} />
+      <HomeStack.Screen name="Habits" component={HabitTrackerScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -82,6 +87,13 @@ export function AppNavigator() {
   // both fresh login and cold start). Best-effort — failures fall back to cache.
   useEffect(() => {
     void hydrateAll();
+    void useStepsStore.getState().init();
+    void registerBackgroundRefresh();
+    // On resume, catch steps up and re-arm tracking if the process was suspended.
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void useStepsStore.getState().init();
+    });
+    return () => sub.remove();
   }, []);
 
   return (

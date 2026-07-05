@@ -13,6 +13,7 @@ import streakRoutes from './routes/streakRoutes.js';
 import alarmsRoutes from './routes/alarmsRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import memoryRoutes from './routes/memoryRoutes.js';
+import habitsRoutes from './routes/habitsRoutes.js';
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/streak', streakRoutes);
 app.use('/api/alarms', alarmsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/memory', memoryRoutes);
+app.use('/api/habits', habitsRoutes);
 
 // ─── 404 Fallback ─────────────────────────────────────────────────────────────
 

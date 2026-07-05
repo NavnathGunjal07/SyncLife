@@ -3,6 +3,7 @@ import {
   ChatTurnResult,
   DailySummary,
   GoldEntry,
+  HabitMonth,
   MealHistoryItem,
   MealLog,
   MotivationAlarm,
@@ -238,6 +239,40 @@ export interface StoredChatMessage {
 
 export function fetchChatHistory(token: string, limit = 40) {
   return apiRequest<{ messages: StoredChatMessage[] }>(`/api/chat/history?limit=${limit}`, token);
+}
+
+// ─── Habits ───────────────────────────────────────────────────────────────────
+
+export function fetchHabitMonth(token: string, month: string) {
+  return apiRequest<HabitMonth>(`/api/habits?month=${month}`, token);
+}
+
+export function createHabit(
+  token: string,
+  input: { name: string; color: string; icon?: string; source?: string }
+) {
+  return apiRequest<{ habit: { id: string } }>('/api/habits', token, {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export function toggleHabit(token: string, id: string, date: string, done: boolean) {
+  return apiRequest<{ success: boolean }>(`/api/habits/${id}/toggle`, token, {
+    method: 'POST',
+    body: JSON.stringify({ date, done })
+  });
+}
+
+export function deleteHabit(token: string, id: string) {
+  return apiRequest<{ success: boolean }>(`/api/habits/${id}`, token, { method: 'DELETE' });
+}
+
+export function addHabitDefaults(token: string, date: string) {
+  return apiRequest<{ added: string[] }>('/api/habits/defaults', token, {
+    method: 'POST',
+    body: JSON.stringify({ date })
+  });
 }
 
 // ─── Long-term Memory ─────────────────────────────────────────────────────────

@@ -9,6 +9,8 @@ import Toast from 'react-native-toast-message';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { colors } from './src/constants/theme';
+// Side-effect import: registers the background progress-refresh task at startup.
+import './src/services/background';
 
 // Keep the native splash visible until our JS is ready
 SplashScreen.preventAutoHideAsync();

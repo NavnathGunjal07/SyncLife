@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { findExerciseInfo } from '../constants/exerciseLibrary';
 import { colors } from '../constants/theme';
 import { AppBottomSheet } from './AppBottomSheet';
+import { ExerciseAnimation, archetypeFor } from './ExerciseFigure';
 
 type Props = {
   visible: boolean;
@@ -25,22 +25,9 @@ export function ExerciseDetailSheet({ visible, onClose, displayName, detail }: P
         <Text style={styles.detail}>{detail}</Text>
       </View>
 
-      {info ? (
-        <Image
-          source={{ uri: info.gifUrl }}
-          style={styles.gif}
-          contentFit="contain"
-          transition={200}
-          autoplay
-          cachePolicy="memory-disk"
-          placeholder={{ uri: info.thumbUrl }}
-        />
-      ) : (
-        <View style={[styles.gif, styles.gifFallback]}>
-          <Ionicons name="barbell-outline" size={48} color={colors.textMuted} />
-          <Text style={styles.fallbackText}>No animation available</Text>
-        </View>
-      )}
+      <View style={styles.animWrap}>
+        <ExerciseAnimation kind={archetypeFor(displayName)} size={190} color={colors.accent} />
+      </View>
 
       {info ? (
         <>
@@ -62,8 +49,6 @@ export function ExerciseDetailSheet({ visible, onClose, displayName, detail }: P
               ))}
             </View>
           )}
-
-          <Text style={styles.credit}>Animation from the open exercises-dataset library.</Text>
         </>
       ) : null}
     </AppBottomSheet>
@@ -83,14 +68,13 @@ const styles = StyleSheet.create({
   header: { marginBottom: 14 },
   title: { color: colors.text, fontSize: 22, fontWeight: '900' },
   detail: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
-  gif: {
-    aspectRatio: 1,
+  animWrap: {
+    alignItems: 'center',
     backgroundColor: colors.surfaceAlt,
     borderRadius: 16,
-    width: '100%'
+    justifyContent: 'center',
+    paddingVertical: 10
   },
-  gifFallback: { alignItems: 'center', gap: 10, justifyContent: 'center' },
-  fallbackText: { color: colors.textMuted, fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   tag: {
     alignItems: 'center',

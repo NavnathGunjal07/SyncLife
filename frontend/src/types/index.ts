@@ -144,6 +144,26 @@ export interface AuthUser {
   name: string;
 }
 
+// ─── Habit tracker ────────────────────────────────────────────────────────────
+
+export type HabitSource = 'manual' | 'water' | 'meals' | 'workout' | 'sleep' | 'walking';
+
+export interface Habit {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  source: HabitSource;
+  /** Day-of-month numbers completed this month (from the server, auto-derived). */
+  days: number[];
+}
+
+export interface HabitMonth {
+  month: string; // YYYY-MM
+  daysInMonth: number;
+  habits: Habit[];
+}
+
 export interface QueuedWrite {
   id: string;
   type: 'meal' | 'workout' | 'water' | 'transaction' | 'gold' | 'summary' | 'goals';

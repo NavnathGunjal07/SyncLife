@@ -11,6 +11,7 @@ import { Chip } from '../components/Chip';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { QuoteCard } from '../components/QuoteCard';
 import { SectionHeader } from '../components/SectionHeader';
+import { StepsCard } from '../components/StepsCard';
 import { colors } from '../constants/theme';
 import { EXERCISE_POOL, WORKOUT_FOCUSES, WORKOUT_PLAN } from '../constants/workouts';
 import { useRotatingQuote } from '../hooks/useRotatingQuote';
@@ -54,6 +55,7 @@ export function WorkoutScreen() {
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>Workout</Text>
       <QuoteCard quote={quote} gradient={gradient} variant="compact" label="Train hard" />
+      <StepsCard />
       <View style={styles.tabs}>{tabs.map((item) => <Chip key={item} label={item} active={tab === item} onPress={() => setTab(item)} />)}</View>
 
       {tab === 'Today' ? (

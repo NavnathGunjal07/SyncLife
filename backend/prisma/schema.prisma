@@ -30,6 +30,45 @@ model User {
   alarms       MotivationAlarm[]
   chatMessages ChatMessage[]
   memories     ChatMemory[]
+  habits       Habit[]
+}
+
+// A tracked habit shown as one ring in the radial monthly tracker.
+model Habit {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  color     String
+  icon      String   @default("checkbox-outline")
+  // manual | water | meals | workout | sleep | walking — drives auto-completion.
+  source    String   @default("manual")
+  sortOrder Int      @default(0)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs HabitLog[]
+
+  @@index([userId])
+}
+
+// One completion mark per habit per day. Absence = derive from the source data
+// (for auto habits) or "not done" (for manual habits). A row here overrides.
+model HabitLog {
+  id        String   @id @default(cuid())
+  userId    String
+  habitId   String
+  date      String
+  done      Boolean  @default(true)
+  // True when the app seeded it automatically (defaults / auto-tracking).
+  auto      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([userId, date])
 }
 
 model UserProfile {

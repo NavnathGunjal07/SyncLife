@@ -30,7 +30,13 @@
         "VIBRATE",
         "SCHEDULE_EXACT_ALARM",
         "USE_FULL_SCREEN_INTENT",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "ACTIVITY_RECOGNITION",
+        "HIGH_SAMPLING_RATE_SENSORS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_HEALTH",
+        "WAKE_LOCK",
+        "RECEIVE_BOOT_COMPLETED"
       ]
     },
     "plugins": [
@@ -45,6 +51,7 @@
         }
       ],
       "expo-audio",
+      "expo-background-task",
       [
         "expo-speech-recognition",
         {

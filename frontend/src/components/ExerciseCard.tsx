@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { findExerciseInfo } from '../constants/exerciseLibrary';
 import { colors } from '../constants/theme';
+import { ExerciseFigure, archetypeFor } from './ExerciseFigure';
 import { Exercise, WorkoutMode } from '../types';
 import { Card } from './Card';
 import { ExerciseDetailSheet } from './ExerciseDetailSheet';
@@ -24,26 +23,13 @@ export function ExerciseCard({ exercise, mode, checked, onToggle, hideToggle, on
   const [detailOpen, setDetailOpen] = useState(false);
   const displayName = mode === 'Home' && exercise.homeAlt ? exercise.homeAlt : exercise.name;
   const detail = exercise.durationSec ? `${Math.round(exercise.durationSec / 60)} min` : `${exercise.sets} x ${exercise.reps}`;
-  const info = findExerciseInfo(displayName);
 
   return (
     <>
       <Card style={styles.card}>
         <Pressable style={styles.tappable} onPress={() => setDetailOpen(true)} hitSlop={4}>
           <View style={styles.thumb}>
-            {info ? (
-              <Image
-                source={{ uri: info.gifUrl }}
-                style={styles.thumbImage}
-                contentFit="cover"
-                transition={150}
-                autoplay
-                cachePolicy="memory-disk"
-                placeholder={{ uri: info.thumbUrl }}
-              />
-            ) : (
-              <Ionicons name="barbell-outline" size={22} color={colors.textMuted} />
-            )}
+            <ExerciseFigure kind={archetypeFor(displayName)} t={0.35} size={46} color={colors.accent} />
           </View>
           <View style={styles.textBlock}>
             <Text style={styles.name}>{displayName}</Text>
@@ -96,7 +82,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: 48
   },
-  thumbImage: { height: '100%', width: '100%' },
   remove: { marginRight: 2 },
   textBlock: {
     flex: 1

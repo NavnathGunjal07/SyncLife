@@ -28,6 +28,7 @@ type HomeStackParamList = {
   Dashboard: undefined;
   Water: undefined;
   Finance: undefined;
+  Habits: undefined;
 };
 type NavProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -115,6 +116,16 @@ export function DashboardScreen() {
         </View>
 
         <QuoteCard quote={quote} gradient={quoteGradient} label="Daily motivation" />
+
+        <Card onPress={() => navigation.navigate('Habits')}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <StatHeader icon="calendar" color={tints.workout} label="Habit tracker" />
+              <Text style={[styles.metric, styles.goldValue]}>Build your streaks</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </View>
+        </Card>
 
         <View style={styles.grid}>
           <Card style={styles.half} onPress={() => navigateTab('Meals')}>

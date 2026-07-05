@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -9,6 +8,7 @@ import { ChatCard } from '../../types';
 import { inr } from '../../utils/formatters';
 import { AppButton } from '../AppButton';
 import { Card } from '../Card';
+import { ExerciseAnimation, archetypeFor } from '../ExerciseFigure';
 
 type Props = {
   card: ChatCard;
@@ -89,21 +89,9 @@ export function ChatCardView({ card, onShowExercise, onMarkComplete, onConfirmMe
         <Card style={styles.card}>
           <Text style={styles.exerciseName}>{info?.name ?? card.name}</Text>
           {card.detail ? <Text style={styles.sub}>{card.detail}</Text> : null}
-          {info ? (
-            <Image
-              source={{ uri: info.gifUrl }}
-              style={styles.gif}
-              contentFit="contain"
-              transition={200}
-              autoplay
-              cachePolicy="memory-disk"
-              placeholder={{ uri: info.thumbUrl }}
-            />
-          ) : (
-            <View style={[styles.gif, styles.gifFallback]}>
-              <Ionicons name="barbell-outline" size={40} color={colors.textMuted} />
-            </View>
-          )}
+          <View style={styles.gifFallback}>
+            <ExerciseAnimation kind={archetypeFor(card.name)} size={130} color={colors.accent} />
+          </View>
           <View style={styles.actions}>
             <AppButton label="How to" icon="information-circle" variant="outline" style={styles.flex} onPress={() => onShowExercise(card.name, card.detail)} />
             <AppButton label="Mark done" icon="checkmark" style={styles.flex} onPress={onMarkComplete} />
