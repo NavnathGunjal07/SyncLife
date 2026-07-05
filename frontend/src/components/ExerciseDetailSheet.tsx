@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { findExerciseInfo } from '../constants/exerciseLibrary';
+import { videoIdFor, youtubeSearchUrl } from '../constants/exerciseVideos';
 import { colors } from '../constants/theme';
 import { AppBottomSheet } from './AppBottomSheet';
-import { ExerciseAnimation, archetypeFor } from './ExerciseFigure';
+import { ExerciseVideo } from './ExerciseVideo';
 
 type Props = {
   visible: boolean;
@@ -25,9 +26,15 @@ export function ExerciseDetailSheet({ visible, onClose, displayName, detail }: P
         <Text style={styles.detail}>{detail}</Text>
       </View>
 
-      <View style={styles.animWrap}>
-        <ExerciseAnimation kind={archetypeFor(displayName)} size={190} color={colors.accent} />
-      </View>
+      <ExerciseVideo videoId={videoIdFor(displayName)} />
+      <Pressable
+        style={styles.ytLink}
+        onPress={() => void Linking.openURL(youtubeSearchUrl(displayName))}
+        hitSlop={6}
+      >
+        <Ionicons name="logo-youtube" size={16} color={colors.danger} />
+        <Text style={styles.ytLinkText}>More “{displayName}” videos on YouTube</Text>
+      </Pressable>
 
       {info ? (
         <>
@@ -68,13 +75,8 @@ const styles = StyleSheet.create({
   header: { marginBottom: 14 },
   title: { color: colors.text, fontSize: 22, fontWeight: '900' },
   detail: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
-  animWrap: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: 16,
-    justifyContent: 'center',
-    paddingVertical: 10
-  },
+  ytLink: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 10 },
+  ytLinkText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   tag: {
     alignItems: 'center',
