@@ -1,5 +1,5 @@
-import { pickLocalMessage, pickLocalReply, RINGTONE_SOURCES } from '../constants/motivation';
-import { MotivationType, Ringtone } from '../types';
+import { pickLocalMessage, pickLocalReply, RINGTONE_SOURCES, SPEECH_LOCALES } from '../constants/motivation';
+import { CoachLanguage, MotivationType, Ringtone } from '../types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -74,6 +74,8 @@ export type MotivationContext = {
   name?: string;
   streakDays?: number;
   workoutDoneToday?: boolean;
+  /** Language the coach should speak in ('en' | 'hi' | 'mr'). */
+  language?: CoachLanguage;
 };
 
 export type MotivationMessage = {
@@ -117,7 +119,7 @@ export async function getMotivationMessage(type: MotivationType, accessToken: st
       clearTimeout(timeout);
     }
   }
-  return { message: pickLocalMessage(type, context.name, context.streakDays), source: 'local' };
+  return { message: pickLocalMessage(type, context.name, context.streakDays, context.language), source: 'local' };
 }
 
 /**
@@ -156,11 +158,11 @@ export async function getMotivationReply(
       clearTimeout(timeout);
     }
   }
-  return { message: pickLocalReply(type, context.name), source: 'local' };
+  return { message: pickLocalReply(type, context.name, context.language), source: 'local' };
 }
 
 /** Speaks the coach message out loud — the "voice" of the call. No-ops if speech is unavailable. */
-export function speakMessage(message: string, onDone?: () => void) {
+export function speakMessage(message: string, onDone?: () => void, language: CoachLanguage = 'en') {
   const Speech = getSpeech();
   if (!Speech) {
     // Native speech unavailable — invoke onDone so the UI flow still completes.
@@ -170,7 +172,7 @@ export function speakMessage(message: string, onDone?: () => void) {
   try {
     Speech.stop();
     Speech.speak(message, {
-      language: 'en-IN',
+      language: SPEECH_LOCALES[language],
       pitch: 1.0,
       rate: 0.95,
       onDone,
@@ -283,7 +285,7 @@ function clearVoiceSubscriptions() {
  * callbacks. Returns false (and fires onError) when voice input is unavailable
  * or permission is denied — callers should keep the text input as the fallback.
  */
-export async function startListening(callbacks: VoiceCallbacks): Promise<boolean> {
+export async function startListening(callbacks: VoiceCallbacks, language: CoachLanguage = 'en'): Promise<boolean> {
   const Recognition = getRecognition();
   if (!Recognition) {
     callbacks.onError?.('Voice input is not available on this build.');
@@ -324,7 +326,7 @@ export async function startListening(callbacks: VoiceCallbacks): Promise<boolean
     );
 
     Module.start({
-      lang: 'en-IN',
+      lang: SPEECH_LOCALES[language],
       interimResults: true,
       continuous: false
     });

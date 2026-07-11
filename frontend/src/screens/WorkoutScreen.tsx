@@ -8,6 +8,7 @@ import { AppBottomSheet } from '../components/AppBottomSheet';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { EmptyState } from '../components/EmptyState';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { QuoteCard } from '../components/QuoteCard';
 import { SectionHeader } from '../components/SectionHeader';
@@ -139,7 +140,7 @@ export function WorkoutScreen() {
               <Text style={styles.muted}>{log.exercises.join(', ')}</Text>
               <Text style={styles.muted}>{log.durationMin} min · {log.caloriesBurned} kcal burned</Text>
             </Card>
-          )) : <Text style={styles.muted}>No workouts logged yet.</Text>}
+          )) : <EmptyState icon="barbell-outline" title="No workouts logged yet" hint="Mark today's workout complete to start your history." />}
         </View>
       ) : null}
 

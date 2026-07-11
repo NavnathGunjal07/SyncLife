@@ -138,6 +138,9 @@ export interface UserProfile {
   workoutLevel: Level;
 }
 
+/** Language the AI coach speaks (and listens) in on motivation calls. */
+export type CoachLanguage = 'en' | 'hi' | 'mr';
+
 export interface AuthUser {
   id: string;
   username: string;
@@ -162,6 +165,21 @@ export interface HabitMonth {
   month: string; // YYYY-MM
   daysInMonth: number;
   habits: Habit[];
+}
+
+export interface HabitYearEntry {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  source: HabitSource;
+  /** ISO dates (YYYY-MM-DD) completed in the year (server-derived). */
+  dates: string[];
+}
+
+export interface HabitYear {
+  year: string; // YYYY
+  habits: HabitYearEntry[];
 }
 
 export interface QueuedWrite {

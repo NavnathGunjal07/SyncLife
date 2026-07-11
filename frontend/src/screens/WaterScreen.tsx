@@ -6,6 +6,7 @@ import Toast from 'react-native-toast-message';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { EmptyState } from '../components/EmptyState';
 import { ProgressRing } from '../components/ProgressRing';
 import { QuoteCard } from '../components/QuoteCard';
 import { colors } from '../constants/theme';
@@ -42,6 +43,16 @@ export function WaterScreen() {
     await addWater(amount);
     await scheduleWaterReminderNotifications(water.intake + amount, water.goal);
     Toast.show({ type: 'success', text1: `Added ${amount}ml` });
+  };
+
+  const addCustom = () => {
+    const amount = Number(custom);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Toast.show({ type: 'error', text1: 'Enter a valid amount', text2: 'Amount should be a number of ml greater than 0.' });
+      return;
+    }
+    void add(Math.round(amount));
+    setCustom('');
   };
 
   const loadHistory = async () => {
@@ -88,7 +99,7 @@ export function WaterScreen() {
           <Card>
             <Text style={styles.cardTitle}>Custom amount</Text>
             <TextInput value={custom} onChangeText={setCustom} keyboardType="numeric" placeholder="Amount in ml" placeholderTextColor={colors.textMuted} style={styles.input} />
-            <AppButton label="Add custom" icon="add" onPress={() => { const amount = Number(custom); if (amount > 0) void add(amount); setCustom(''); }} />
+            <AppButton label="Add custom" icon="add" onPress={addCustom} />
           </Card>
           <Text style={styles.cardTitle}>Today's history</Text>
           {logs.length ? logs.slice().reverse().map((log, index) => (
@@ -96,14 +107,14 @@ export function WaterScreen() {
               <Text style={styles.metric}>{log.amountMl}ml</Text>
               <Text style={styles.muted}>{log.time}</Text>
             </Card>
-          )) : <Text style={styles.muted}>No water logged today.</Text>}
+          )) : <EmptyState icon="water-outline" title="No water logged today" hint="Tap a quick-add button above to log your first glass." />}
         </>
       ) : (
         <>
           {historyLoading && history.length === 0 ? (
             <ActivityIndicator color={colors.accent} style={styles.loader} />
           ) : grouped.length === 0 ? (
-            <Text style={styles.muted}>No water history yet.</Text>
+            <EmptyState icon="time-outline" title="No water history yet" hint="Days you log water will show up here." />
           ) : (
             grouped.map(([date, { total, goal }]) => (
               <Card key={date} style={styles.row}>

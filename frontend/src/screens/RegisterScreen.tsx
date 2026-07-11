@@ -2,7 +2,6 @@ import { useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -115,11 +114,12 @@ export function RegisterScreen() {
           />
         </View>
 
-        {loading ? (
-          <ActivityIndicator color={colors.accent} />
-        ) : (
-          <AppButton label="Create account" icon="person-add" onPress={() => void handleRegister()} />
-        )}
+        <AppButton
+          label={loading ? 'Creating account…' : 'Create account'}
+          icon="person-add"
+          loading={loading}
+          onPress={() => void handleRegister()}
+        />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account?</Text>

@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import {
   getHabitMonth,
+  getHabitYear,
   createHabit,
   archiveHabit,
   setHabitLog,
@@ -10,6 +11,7 @@ import {
 
 const router = Router();
 
+const yearRe = /^\d{4}$/;
 const monthRe = /^\d{4}-\d{2}$/;
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -22,6 +24,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       return;
     }
     const data = await getHabitMonth(req.userId, month);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/habits/year?year=YYYY — completed dates per habit for a whole year.
+router.get('/year', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const year = String(req.query.year ?? new Date().toISOString().slice(0, 4));
+    if (!yearRe.test(year)) {
+      res.status(400).json({ error: 'BadRequest', message: 'year must be YYYY.' });
+      return;
+    }
+    const data = await getHabitYear(req.userId, year);
     res.json(data);
   } catch (error) {
     next(error);

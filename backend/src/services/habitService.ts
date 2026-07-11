@@ -146,6 +146,60 @@ export async function getHabitMonth(userId: string, month: string) {
   return { month, daysInMonth: total, habits: entries };
 }
 
+// ─── Year view (heatmap) ──────────────────────────────────────────────────────
+
+export interface HabitYearEntry {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  source: string;
+  dates: string[]; // ISO dates (YYYY-MM-DD) completed in the year
+}
+
+// Same completion rules as the month view (explicit log overrides win, else
+// derived from water/meal/workout data), but returned as full dates so the
+// client can render a whole-year heatmap in one request.
+export async function getHabitYear(userId: string, year: string) {
+  await ensureDefaultHabits(userId);
+  const today = new Date().toISOString().slice(0, 10);
+  if (today.startsWith(year)) await seedDailyDefaults(userId, today);
+
+  const [habits, logs, waterLogs, mealRows, workoutRows, profile] = await Promise.all([
+    getHabits(userId),
+    prisma.habitLog.findMany({ where: { userId, date: { startsWith: year } } }),
+    prisma.waterLog.findMany({ where: { userId, date: { startsWith: year } } }),
+    prisma.mealLog.findMany({ where: { userId, date: { startsWith: year } }, select: { date: true } }),
+    prisma.workoutLog.findMany({ where: { userId, date: { startsWith: year }, completed: true }, select: { date: true } }),
+    prisma.userProfile.findUnique({ where: { userId } })
+  ]);
+
+  const waterByDate = new Map<string, number>();
+  waterLogs.forEach((w) => waterByDate.set(w.date, (waterByDate.get(w.date) ?? 0) + w.amountMl));
+  const waterGoal = profile?.waterGoalMl ?? 2310;
+
+  const entries: HabitYearEntry[] = habits.map((h) => {
+    const done = new Set<string>();
+    if (h.source === 'water') {
+      waterByDate.forEach((ml, date) => {
+        if (ml >= waterGoal) done.add(date);
+      });
+    } else if (h.source === 'meals') {
+      mealRows.forEach((m) => done.add(m.date));
+    } else if (h.source === 'workout') {
+      workoutRows.forEach((w) => done.add(w.date));
+    }
+    for (const log of logs) {
+      if (log.habitId !== h.id) continue;
+      if (log.done) done.add(log.date);
+      else done.delete(log.date);
+    }
+    return { id: h.id, name: h.name, color: h.color, icon: h.icon, source: h.source, dates: [...done].sort() };
+  });
+
+  return { year, habits: entries };
+}
+
 // ─── One-tap "fill my usual day" ──────────────────────────────────────────────
 
 // Seeds default logs so today's data-backed habits (meals/water/workout) light

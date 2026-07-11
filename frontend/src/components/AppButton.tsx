@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 
 import { colors } from '../constants/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   label: string;
@@ -10,19 +13,38 @@ type Props = {
   icon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
   disabled?: boolean;
+  loading?: boolean;
 };
 
-export function AppButton({ label, onPress, variant = 'filled', icon, style, disabled }: Props) {
+export function AppButton({ label, onPress, variant = 'filled', icon, style, disabled, loading }: Props) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const blocked = disabled || loading;
+  const contentColor = variant === 'filled' ? colors.background : colors.accent;
+
+  const pressIn = () => {
+    Animated.spring(scale, { toValue: 0.96, speed: 40, bounciness: 0, useNativeDriver: true }).start();
+  };
+  const pressOut = () => {
+    Animated.spring(scale, { toValue: 1, speed: 40, bounciness: 6, useNativeDriver: true }).start();
+  };
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
-      disabled={disabled}
+      accessibilityState={{ disabled: Boolean(blocked), busy: Boolean(loading) }}
+      disabled={blocked}
       onPress={onPress}
-      style={({ pressed }) => [styles.base, styles[variant], pressed && styles.pressed, disabled && styles.disabled, style]}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      style={[styles.base, styles[variant], disabled && styles.disabled, style, { transform: [{ scale }] }]}
     >
-      {icon ? <Ionicons name={icon} size={18} color={variant === 'filled' ? colors.background : colors.accent} /> : null}
+      {loading ? (
+        <ActivityIndicator size="small" color={contentColor} />
+      ) : icon ? (
+        <Ionicons name={icon} size={18} color={contentColor} />
+      ) : null}
       <Text style={[styles.label, variant !== 'filled' && styles.outlineLabel]}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -56,9 +78,6 @@ const styles = StyleSheet.create({
   },
   outlineLabel: {
     color: colors.accent
-  },
-  pressed: {
-    opacity: 0.8
   },
   disabled: {
     opacity: 0.4

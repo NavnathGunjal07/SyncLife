@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { MOTIVATION_META, RINGTONES } from '../constants/motivation';
+import { COACH_LANGUAGES, MOTIVATION_META, RINGTONES } from '../constants/motivation';
 import { colors } from '../constants/theme';
 import { previewRingtone, stopRinging } from '../services/motivation';
 import { useMotivationStore } from '../store/motivation';
@@ -20,7 +20,7 @@ function formatTime(hour: number, minute: number) {
 }
 
 export function MotivationAlarmsCard() {
-  const { alarms, ringtone, permissionDenied, addAlarm, toggleAlarm, removeAlarm, setRingtone } = useMotivationStore();
+  const { alarms, ringtone, language, permissionDenied, addAlarm, toggleAlarm, removeAlarm, setRingtone, setLanguage } = useMotivationStore();
   const [newType, setNewType] = useState<MotivationType>('gym');
   const [hourText, setHourText] = useState('7');
   const [minuteText, setMinuteText] = useState('00');
@@ -98,6 +98,24 @@ export function MotivationAlarmsCard() {
           <Ionicons name="play-circle" size={18} color={colors.accent} />
           <Text style={styles.previewText}>Preview</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.ringtoneSection}>
+        <View style={styles.ringtoneHeader}>
+          <Ionicons name="language" size={16} color={colors.accent} />
+          <Text style={styles.ringtoneTitle}>Coach language</Text>
+        </View>
+        <View style={styles.chips}>
+          {COACH_LANGUAGES.map((option) => (
+            <Chip
+              key={option.id}
+              label={option.label}
+              active={language === option.id}
+              onPress={() => void setLanguage(option.id)}
+            />
+          ))}
+        </View>
+        <Text style={styles.hint}>The coach speaks, listens, and replies in this language on calls.</Text>
       </View>
 
       {adding ? (

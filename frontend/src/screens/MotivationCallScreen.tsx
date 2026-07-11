@@ -25,6 +25,7 @@ import {
   getMotivationMessage,
   getMotivationReply,
   isVoiceInputAvailable,
+  MotivationMessage,
   speakMessage,
   startListening,
   startRinging,
@@ -46,6 +47,7 @@ export function MotivationCallScreen({ navigation, route }: Props) {
   const notificationId = route.params?.notificationId;
   const meta = MOTIVATION_META[alarmType];
   const ringtone = useMotivationStore((state) => state.ringtone);
+  const language = useMotivationStore((state) => state.language);
   const [callState, setCallState] = useState<CallState>('ringing');
   const [turns, setTurns] = useState<CallTurn[]>([]);
   const [source, setSource] = useState<'ai' | 'local'>('local');
@@ -60,6 +62,26 @@ export function MotivationCallScreen({ navigation, route }: Props) {
   // Ref mirror of `turns` so async voice callbacks always send the latest history.
   const turnsRef = useRef<CallTurn[]>([]);
   const voiceSupported = useRef(isVoiceInputAvailable()).current;
+  // The coach's opening line, prefetched while the phone is still ringing so
+  // answering connects instantly instead of sitting on a loading screen.
+  const openerPromise = useRef<Promise<MotivationMessage> | null>(null);
+  const openerResult = useRef<MotivationMessage | null>(null);
+
+  useEffect(() => {
+    const { user, accessToken, streak } = useAuthStore.getState();
+    const workoutDoneToday = useWorkoutStore.getState().completedToday();
+    const promise = getMotivationMessage(alarmType, accessToken, {
+      name: user?.name,
+      streakDays: streak,
+      workoutDoneToday,
+      language
+    });
+    openerPromise.current = promise;
+    void promise.then((result) => {
+      openerResult.current = result;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     turnsRef.current = turns;
@@ -115,19 +137,34 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     if (notificationId) {
       void Notifications.dismissNotificationAsync(notificationId).catch(() => undefined);
     }
+
+    const begin = (result: MotivationMessage) => {
+      setSource(result.source);
+      setTurns([{ role: 'assistant', content: result.message }]);
+      setCallState('active');
+      setSpeaking(true);
+      speakMessage(result.message, () => setSpeaking(false), language);
+    };
+
+    // Prefetched while ringing — connect immediately.
+    if (openerResult.current) {
+      begin(openerResult.current);
+      return;
+    }
+
+    // Answered before the prefetch finished — wait on the same in-flight
+    // request rather than starting a new one.
     setCallState('connecting');
     const { user, accessToken, streak } = useAuthStore.getState();
     const workoutDoneToday = useWorkoutStore.getState().completedToday();
-    const result = await getMotivationMessage(alarmType, accessToken, {
-      name: user?.name,
-      streakDays: streak,
-      workoutDoneToday
-    });
-    setSource(result.source);
-    setTurns([{ role: 'assistant', content: result.message }]);
-    setCallState('active');
-    setSpeaking(true);
-    speakMessage(result.message, () => setSpeaking(false));
+    const result = await (openerPromise.current ??
+      getMotivationMessage(alarmType, accessToken, {
+        name: user?.name,
+        streakDays: streak,
+        workoutDoneToday,
+        language
+      }));
+    begin(result);
   };
 
   const sendTurn = async (text: string) => {
@@ -147,13 +184,14 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     const result = await getMotivationReply(alarmType, history, accessToken, {
       name: user?.name,
       streakDays: streak,
-      workoutDoneToday
+      workoutDoneToday,
+      language
     });
     setSource(result.source);
     setTurns((prev) => [...prev, { role: 'assistant', content: result.message }]);
     setReplying(false);
     setSpeaking(true);
-    speakMessage(result.message, () => setSpeaking(false));
+    speakMessage(result.message, () => setSpeaking(false), language);
   };
 
   const toggleMic = async () => {
@@ -165,19 +203,22 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     setSpeaking(false);
     setVoiceNote('Listening…');
     setListening(true);
-    const ok = await startListening({
-      onPartial: (t) => setDraft(t),
-      onResult: (t) => {
-        setListening(false);
-        setVoiceNote('');
-        void sendTurn(t);
+    const ok = await startListening(
+      {
+        onPartial: (t) => setDraft(t),
+        onResult: (t) => {
+          setListening(false);
+          setVoiceNote('');
+          void sendTurn(t);
+        },
+        onEnd: () => setListening(false),
+        onError: (message) => {
+          setListening(false);
+          setVoiceNote(message);
+        }
       },
-      onEnd: () => setListening(false),
-      onError: (message) => {
-        setListening(false);
-        setVoiceNote(message);
-      }
-    });
+      language
+    );
     if (!ok) setListening(false);
   };
 
@@ -288,7 +329,7 @@ export function MotivationCallScreen({ navigation, route }: Props) {
                 const last = [...turns].reverse().find((t) => t.role === 'assistant');
                 if (!last) return;
                 setSpeaking(true);
-                speakMessage(last.content, () => setSpeaking(false));
+                speakMessage(last.content, () => setSpeaking(false), language);
               }}
             />
           )}

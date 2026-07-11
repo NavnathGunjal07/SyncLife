@@ -7,6 +7,7 @@ import { AppBottomSheet } from '../components/AppBottomSheet';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { EmptyState } from '../components/EmptyState';
 import { QuoteCard } from '../components/QuoteCard';
 import { EXPENSE_CATEGORIES, GOLD_CATEGORIES, INCOME_CATEGORIES } from '../constants/finance';
 import { colors } from '../constants/theme';
@@ -37,6 +38,9 @@ export function FinanceScreen() {
   const addGoldEntry = useGoldStore((state) => state.addGoldEntry);
   const holdings = useGoldStore((state) => state.holdings());
 
+  const expenses = useMemo(() => transactions.filter((tx) => tx.type === 'expense').slice().reverse(), [transactions]);
+  const incomes = useMemo(() => transactions.filter((tx) => tx.type === 'income').slice().reverse(), [transactions]);
+
   const expenseBreakdown = useMemo(() => {
     const grouped = EXPENSE_CATEGORIES.map((item) => ({
       x: item,
@@ -55,7 +59,10 @@ export function FinanceScreen() {
   const saveTransaction = async () => {
     const type: TransactionType = tab === 'Income' ? 'income' : 'expense';
     const value = Number(amount);
-    if (!value) return;
+    if (!Number.isFinite(value) || value <= 0) {
+      Toast.show({ type: 'error', text1: 'Enter a valid amount', text2: 'Amount should be a number greater than 0.' });
+      return;
+    }
     await addTransaction({ type, category, amount: value, notes });
     Toast.show({ type: 'success', text1: `${type === 'expense' ? 'Expense' : 'Income'} saved` });
     setSheet(null);
@@ -64,7 +71,10 @@ export function FinanceScreen() {
   const saveGold = async () => {
     const goldGrams = Number(grams);
     const price = Number(buyPrice);
-    if (!goldGrams || !price) return;
+    if (!Number.isFinite(goldGrams) || goldGrams <= 0 || !Number.isFinite(price) || price <= 0) {
+      Toast.show({ type: 'error', text1: 'Check grams and buy price', text2: 'Both should be numbers greater than 0.' });
+      return;
+    }
     await addGoldEntry({ category: goldCategory, grams: goldGrams, buyPrice: price });
     Toast.show({ type: 'success', text1: 'Gold entry saved' });
     setSheet(null);
@@ -84,12 +94,12 @@ export function FinanceScreen() {
               <Text style={styles.metric}>{inr(dailySpend)}</Text>
             </Card>
             <AppButton label="Add expense" icon="remove-circle" onPress={() => openTransaction('expense')} />
-            {transactions.filter((tx) => tx.type === 'expense').slice().reverse().map((tx) => (
+            {expenses.length ? expenses.map((tx) => (
               <Card key={tx.id} style={styles.row}>
                 <View><Text style={styles.cardTitle}>{tx.category}</Text><Text style={styles.muted}>{tx.notes || tx.date}</Text></View>
                 <Text style={styles.metricSmall}>{inr(tx.amount)}</Text>
               </Card>
-            ))}
+            )) : <EmptyState icon="receipt-outline" title="No expenses yet" hint="Add one to start tracking your daily spend." />}
           </>
         ) : null}
 
@@ -100,12 +110,12 @@ export function FinanceScreen() {
               <Text style={styles.metric}>{inr(monthlyIncome)}</Text>
             </Card>
             <AppButton label="Add income" icon="add-circle" onPress={() => openTransaction('income')} />
-            {transactions.filter((tx) => tx.type === 'income').slice().reverse().map((tx) => (
+            {incomes.length ? incomes.map((tx) => (
               <Card key={tx.id} style={styles.row}>
                 <View><Text style={styles.cardTitle}>{tx.category}</Text><Text style={styles.muted}>{tx.notes || tx.date}</Text></View>
                 <Text style={styles.metricSmall}>{inr(tx.amount)}</Text>
               </Card>
-            ))}
+            )) : <EmptyState icon="cash-outline" title="No income recorded" hint="Add salary or other income to see your monthly net." />}
           </>
         ) : null}
 
@@ -153,7 +163,7 @@ export function FinanceScreen() {
                 <Text style={styles.metric}>{holding.totalGrams.toFixed(2)}g</Text>
                 <Text style={styles.muted}>Avg {inr(holding.avgBuyPrice)}/g · Value {inr(holding.currentValue)} · P&L {inr(holding.pnl)}</Text>
               </Card>
-            )) : <Text style={styles.muted}>No gold holdings yet.</Text>}
+            )) : <EmptyState icon="diamond-outline" title="No gold holdings yet" hint="Add an entry to start tracking value and P&L." />}
           </>
         ) : null}
       </ScrollView>

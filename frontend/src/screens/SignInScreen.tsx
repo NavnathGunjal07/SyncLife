@@ -2,7 +2,6 @@ import { useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -95,11 +94,12 @@ export function SignInScreen() {
           />
         </View>
 
-        {loading ? (
-          <ActivityIndicator color={colors.accent} />
-        ) : (
-          <AppButton label="Sign in" icon="log-in" onPress={() => void handleLogin()} />
-        )}
+        <AppButton
+          label={loading ? 'Signing in…' : 'Sign in'}
+          icon="log-in"
+          loading={loading}
+          onPress={() => void handleLogin()}
+        />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account?</Text>

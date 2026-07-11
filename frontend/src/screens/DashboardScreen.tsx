@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -76,12 +77,21 @@ export function DashboardScreen() {
   ];
   const dateLabel = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const refresh = async () => {
-    const count = await syncNow();
-    Toast.show({
-      type: 'success',
-      text1: count ? `Synced ${count} queued writes` : 'Sync is up to date'
-    });
+    setRefreshing(true);
+    try {
+      const count = await syncNow();
+      Toast.show({
+        type: 'success',
+        text1: count ? `Synced ${count} queued writes` : 'Sync is up to date'
+      });
+    } catch {
+      Toast.show({ type: 'error', text1: "Couldn't sync", text2: 'Check your connection and try again.' });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const navigateTab = (tab: string) => {
@@ -100,7 +110,9 @@ export function DashboardScreen() {
         refreshControl={
           <RefreshControl
             tintColor={colors.accent}
-            refreshing={false}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surface}
+            refreshing={refreshing}
             onRefresh={() => void refresh()}
           />
         }

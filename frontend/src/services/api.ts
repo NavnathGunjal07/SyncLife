@@ -4,6 +4,7 @@ import {
   DailySummary,
   GoldEntry,
   HabitMonth,
+  HabitYear,
   MealHistoryItem,
   MealLog,
   MotivationAlarm,
@@ -245,6 +246,10 @@ export function fetchChatHistory(token: string, limit = 40) {
 
 export function fetchHabitMonth(token: string, month: string) {
   return apiRequest<HabitMonth>(`/api/habits?month=${month}`, token);
+}
+
+export function fetchHabitYear(token: string, year: string) {
+  return apiRequest<HabitYear>(`/api/habits/year?year=${year}`, token);
 }
 
 export function createHabit(

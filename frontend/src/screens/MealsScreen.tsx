@@ -8,6 +8,7 @@ import { AppBottomSheet } from '../components/AppBottomSheet';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { EmptyState } from '../components/EmptyState';
 import { MealCard } from '../components/MealCard';
 import { ProgressRing } from '../components/ProgressRing';
 import { QuoteCard } from '../components/QuoteCard';
@@ -209,7 +210,7 @@ export function MealsScreen() {
             {historyLoading && history.length === 0 ? (
               <ActivityIndicator color={colors.accent} style={styles.loader} />
             ) : grouped.length === 0 ? (
-              <Text style={styles.muted}>No meals logged yet. Log one from the Log tab.</Text>
+              <EmptyState icon="restaurant-outline" title="No meals logged yet" hint="Log one from the Log tab and it'll show up here." />
             ) : (
               grouped.map(([date, items]) => {
                 const dayKcal = items.reduce((sum, m) => sum + m.totalCalories, 0);

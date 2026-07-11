@@ -10,7 +10,10 @@ type Props = {
 
 export function Chip({ label, active, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.active]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.chip, active && styles.active, pressed && styles.pressed]}
+    >
       <Text style={[styles.label, active && styles.activeLabel]}>{label}</Text>
     </Pressable>
   );
@@ -27,6 +30,9 @@ const styles = StyleSheet.create({
   active: {
     backgroundColor: colors.accent,
     borderColor: colors.accent
+  },
+  pressed: {
+    opacity: 0.7
   },
   label: {
     color: colors.text,

@@ -14,7 +14,8 @@ const baseContext = {
   name: z.string().max(100).optional(),
   streakDays: z.number().int().nonnegative().optional(),
   workoutDoneToday: z.boolean().optional(),
-  timeOfDay: z.number().int().min(0).max(23).optional()
+  timeOfDay: z.number().int().min(0).max(23).optional(),
+  language: z.enum(['en', 'hi', 'mr']).optional()
 };
 
 const motivationSchema = z.object(baseContext);

@@ -2,9 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { CALL_BODY, COACH_NAME, DEFAULT_RINGTONE, RINGTONES, ringtoneFile } from '../constants/motivation';
+import { callBody, COACH_NAME, DEFAULT_LANGUAGE, DEFAULT_RINGTONE, RINGTONES, ringtoneFile } from '../constants/motivation';
 import { getRandomQuote } from '../constants/quotes';
-import { MotivationAlarm, Ringtone } from '../types';
+import { CoachLanguage, MotivationAlarm, Ringtone } from '../types';
 
 const DAILY_IDS_KEY = 'synclife_daily_notification_ids';
 const MOTIVATION_IDS_KEY = 'synclife_motivation_notification_ids';
@@ -149,7 +149,11 @@ export async function scheduleDailyNotifications() {
  * scheduled calls first, then schedules one daily repeating notification per
  * enabled alarm. Returns false when notification permission was denied.
  */
-export async function rescheduleMotivationCalls(alarms: MotivationAlarm[], ringtone: Ringtone = DEFAULT_RINGTONE) {
+export async function rescheduleMotivationCalls(
+  alarms: MotivationAlarm[],
+  ringtone: Ringtone = DEFAULT_RINGTONE,
+  language: CoachLanguage = DEFAULT_LANGUAGE
+) {
   await cancelTrackedNotifications(MOTIVATION_IDS_KEY);
 
   const enabled = alarms.filter((alarm) => alarm.enabled);
@@ -169,10 +173,12 @@ export async function rescheduleMotivationCalls(alarms: MotivationAlarm[], ringt
   const ids = await Promise.all(
     enabled.map((alarm) => {
       const quote = getRandomQuote();
+      // The quote bank is English — only append it when the coach speaks English.
+      const quoteLine = language === 'en' ? `\n\n"${quote.text}" — ${quote.author}` : '';
       return Notifications.scheduleNotificationAsync({
         content: {
           title: `📞 Incoming call: ${COACH_NAME}`,
-          body: `${CALL_BODY[alarm.type]}\n\n"${quote.text}" — ${quote.author}`,
+          body: `${callBody(alarm.type, language)}${quoteLine}`,
           sound: soundFile,
           priority: Notifications.AndroidNotificationPriority.MAX,
           vibrate: CALL_VIBRATION_PATTERN,
