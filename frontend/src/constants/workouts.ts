@@ -15,30 +15,51 @@ export const WORKOUT_FOCUSES: WorkoutFocus[] = ['Push', 'Pull', 'Legs', 'Shoulde
 export const WORKOUT_TEMPLATES: Record<WorkoutFocus, Exercise[]> = {
   Push: [
     exercise('Bench Press', 'Decline Pushups'),
+    exercise('Incline Dumbbell Press', 'Wide Pushups'),
     exercise('Pushups'),
     exercise('Chest Fly', 'Floor Fly'),
-    exercise('Tricep Pushdown', 'Chair Dips')
+    exercise('Tricep Pushdown', 'Chair Dips'),
+    exercise('Overhead Tricep Extension', 'Diamond Pushups')
   ],
   Pull: [
     exercise('Pullups', 'Towel Rows'),
     exercise('Barbell Row', 'Backpack Row'),
     exercise('Lat Pulldown', 'Band Pulldown'),
-    exercise('Bicep Curl', 'Backpack Curl')
+    exercise('Deadlift', 'Backpack Deadlift'),
+    exercise('Bicep Curl', 'Backpack Curl'),
+    exercise('Hammer Curl', 'Backpack Hammer Curl')
   ],
   Legs: [
     exercise('Squats', 'Bodyweight Squats'),
     exercise('Leg Press', 'Wall Sit'),
+    exercise('Romanian Deadlift', 'Backpack RDL'),
     exercise('Lunges'),
+    exercise('Step Ups'),
+    exercise('Glute Bridge'),
     exercise('Calf Raises')
   ],
   'Shoulders & Core': [
     exercise('Shoulder Press', 'Pike Pushups'),
     exercise('Lateral Raise', 'Water Bottle Raise'),
+    exercise('Front Raise', 'Water Bottle Front Raise'),
+    exercise('Rear Delt Fly', 'Water Bottle Rear Fly'),
     exercise('Plank', undefined, 60),
+    exercise('Russian Twists'),
+    exercise('Leg Raises'),
     exercise('Crunches')
   ],
-  'Full Body': [exercise('Full Body HIIT', undefined, 1200)],
-  Cardio: [exercise('Running', undefined, 1800), exercise('Cycling', undefined, 1800), exercise('Stretching', undefined, 900)]
+  'Full Body': [
+    exercise('Full Body HIIT', undefined, 1200),
+    exercise('Burpees'),
+    exercise('Mountain Climbers', undefined, 60),
+    exercise('Jumping Jacks', undefined, 60)
+  ],
+  Cardio: [
+    exercise('Running', undefined, 1800),
+    exercise('Cycling', undefined, 1800),
+    exercise('Jump Rope', undefined, 600),
+    exercise('Stretching', undefined, 900)
+  ]
 };
 
 // The default focus suggested for each weekday (Sunday = rest).

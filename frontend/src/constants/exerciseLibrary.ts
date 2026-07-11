@@ -220,6 +220,167 @@ export const EXERCISE_LIBRARY: Record<string, ExerciseInfo> = {
     equipment: "Dumbbell",
     steps: ["Stand with your feet shoulder-width apart and hold a dumbbell in each hand, palms facing your body.","Keep your back straight and engage your core.","Raise your arms out to the sides until they are parallel to the floor, keeping a slight bend in your elbows.","Pause for a moment at the top, then slowly lower your arms back down to the starting position.","Repeat for the desired number of repetitions."]
   },
+  "wall sit": {
+    id: "c001",
+    name: "Wall Sit",
+    target: "Quads",
+    equipment: "Body Weight",
+    steps: ["Stand with your back flat against a wall and your feet about two feet in front of you, shoulder-width apart.","Slide down the wall until your thighs are parallel to the floor, knees at roughly ninety degrees.","Keep your back pressed into the wall and your weight in your heels.","Hold the position for the target time, breathing steadily.","Push through your heels to slide back up and rest."]
+  },
+  "incline dumbbell press": {
+    id: "c002",
+    name: "Incline Dumbbell Press",
+    target: "Upper Chest",
+    equipment: "Dumbbell",
+    steps: ["Set a bench to a thirty to forty-five degree incline and sit back with a dumbbell in each hand at shoulder level.","Plant your feet and press your back into the bench.","Press the dumbbells up and slightly together until your arms are extended.","Pause briefly at the top, then lower the dumbbells back to shoulder level with control.","Repeat for the desired number of repetitions."]
+  },
+  "wide pushups": {
+    id: "c003",
+    name: "Wide Push-Up",
+    target: "Pectorals",
+    equipment: "Body Weight",
+    steps: ["Start in a high plank with your hands placed noticeably wider than shoulder-width.","Keep your body in a straight line from head to heels and brace your core.","Lower your chest towards the floor by bending your elbows out to the sides.","Pause just above the floor, then press back up to the start.","Repeat for the desired number of repetitions."]
+  },
+  "overhead tricep extension": {
+    id: "c004",
+    name: "Dumbbell Overhead Triceps Extension",
+    target: "Triceps",
+    equipment: "Dumbbell",
+    steps: ["Sit or stand tall holding one dumbbell with both hands overhead, arms extended.","Keep your elbows close to your head and pointing forward.","Lower the dumbbell behind your head by bending your elbows.","Pause when your forearms go just past parallel, then extend your arms back to the top.","Repeat for the desired number of repetitions."]
+  },
+  "diamond pushups": {
+    id: "c005",
+    name: "Diamond Push-Up",
+    target: "Triceps",
+    equipment: "Body Weight",
+    steps: ["Start in a high plank with your hands together under your chest, thumbs and index fingers forming a diamond.","Keep your elbows tucked close to your body and your core braced.","Lower your chest towards your hands with control.","Press back up to the starting position without flaring your elbows.","Repeat for the desired number of repetitions."]
+  },
+  "deadlift": {
+    id: "c006",
+    name: "Barbell Deadlift",
+    target: "Posterior Chain",
+    equipment: "Barbell",
+    steps: ["Stand with your mid-foot under the barbell, feet hip-width apart.","Hinge at the hips and grip the bar just outside your knees, back flat and chest up.","Take a breath, brace your core, and pull your slack out of the bar.","Drive through your heels and stand up, keeping the bar close to your body.","Lock out with hips and knees extended, then lower the bar back down with a controlled hinge.","Repeat for the desired number of repetitions."]
+  },
+  "backpack deadlift": {
+    id: "c007",
+    name: "Backpack Deadlift",
+    target: "Posterior Chain",
+    equipment: "Loaded Backpack",
+    steps: ["Load a backpack with books or bottles and place it between your feet.","Hinge at the hips with a flat back and grip the backpack handle with both hands.","Brace your core and drive through your heels to stand tall.","Squeeze your glutes at the top, then lower the backpack back down with a controlled hinge.","Repeat for the desired number of repetitions."]
+  },
+  "hammer curl": {
+    id: "c008",
+    name: "Dumbbell Hammer Curl",
+    target: "Biceps",
+    equipment: "Dumbbell",
+    steps: ["Stand tall with a dumbbell in each hand, palms facing your body (neutral grip).","Keep your elbows pinned to your sides.","Curl the weights up towards your shoulders without rotating your wrists.","Squeeze at the top, then lower back down slowly.","Repeat for the desired number of repetitions."]
+  },
+  "backpack hammer curl": {
+    id: "c009",
+    name: "Backpack Hammer Curl",
+    target: "Biceps",
+    equipment: "Loaded Backpack",
+    steps: ["Hold a loaded backpack by its top handle with one or both hands, palm facing inward.","Keep your elbows pinned to your sides.","Curl the backpack up towards your shoulder without swinging.","Squeeze at the top, then lower back down slowly.","Repeat for the desired number of repetitions."]
+  },
+  "romanian deadlift": {
+    id: "c010",
+    name: "Romanian Deadlift",
+    target: "Hamstrings",
+    equipment: "Barbell",
+    steps: ["Stand tall holding a barbell or dumbbells in front of your thighs.","With a slight bend in your knees, push your hips back and lower the weight down your legs.","Keep your back flat and the weight close to your body.","Lower until you feel a deep stretch in your hamstrings, around mid-shin.","Drive your hips forward to return to standing, squeezing your glutes at the top.","Repeat for the desired number of repetitions."]
+  },
+  "backpack rdl": {
+    id: "c011",
+    name: "Backpack Romanian Deadlift",
+    target: "Hamstrings",
+    equipment: "Loaded Backpack",
+    steps: ["Stand tall holding a loaded backpack in front of your thighs.","With a slight bend in your knees, push your hips back and lower the backpack down your legs.","Keep your back flat and the load close to your body.","Lower until you feel a deep hamstring stretch, then drive your hips forward to stand.","Repeat for the desired number of repetitions."]
+  },
+  "glute bridge": {
+    id: "c012",
+    name: "Glute Bridge",
+    target: "Glutes",
+    equipment: "Body Weight",
+    steps: ["Lie on your back with your knees bent and feet flat on the floor, hip-width apart.","Place your arms at your sides, palms down.","Drive through your heels and lift your hips until your body forms a straight line from shoulders to knees.","Squeeze your glutes hard at the top for a second.","Lower your hips back down with control.","Repeat for the desired number of repetitions."]
+  },
+  "step ups": {
+    id: "c013",
+    name: "Step-Up",
+    target: "Quads",
+    equipment: "Body Weight",
+    steps: ["Stand facing a sturdy bench, box, or stair.","Place your right foot fully on the surface.","Drive through your right heel to lift your body up until the right leg is straight.","Step back down with control and repeat on the left leg.","Continue alternating legs for the desired number of repetitions."]
+  },
+  "front raise": {
+    id: "c014",
+    name: "Dumbbell Front Raise",
+    target: "Front Delts",
+    equipment: "Dumbbell",
+    steps: ["Stand with a dumbbell in each hand resting in front of your thighs, palms facing you.","Keep a slight bend in your elbows and your core braced.","Raise one or both arms straight in front of you to shoulder height.","Pause briefly, then lower back down with control.","Repeat for the desired number of repetitions."]
+  },
+  "water bottle front raise": {
+    id: "c015",
+    name: "Water Bottle Front Raise",
+    target: "Front Delts",
+    equipment: "Water Bottles",
+    steps: ["Stand with a filled water bottle in each hand resting in front of your thighs.","Keep a slight bend in your elbows and your core braced.","Raise your arms straight in front of you to shoulder height.","Pause briefly, then lower back down with control.","Repeat for the desired number of repetitions."]
+  },
+  "rear delt fly": {
+    id: "c016",
+    name: "Dumbbell Rear Delt Fly",
+    target: "Rear Delts",
+    equipment: "Dumbbell",
+    steps: ["Hold a dumbbell in each hand and hinge forward at the hips until your chest is nearly parallel to the floor.","Let your arms hang down with a slight bend in your elbows, palms facing each other.","Raise your arms out to the sides, squeezing your shoulder blades together.","Pause at the top, then lower back down with control.","Repeat for the desired number of repetitions."]
+  },
+  "water bottle rear fly": {
+    id: "c017",
+    name: "Water Bottle Rear Fly",
+    target: "Rear Delts",
+    equipment: "Water Bottles",
+    steps: ["Hold a filled water bottle in each hand and hinge forward at the hips, back flat.","Let your arms hang down with a slight bend in your elbows.","Raise your arms out to the sides, squeezing your shoulder blades together.","Pause at the top, then lower back down with control.","Repeat for the desired number of repetitions."]
+  },
+  "russian twists": {
+    id: "c018",
+    name: "Russian Twist",
+    target: "Obliques",
+    equipment: "Body Weight",
+    steps: ["Sit on the floor with your knees bent and heels lightly touching the ground.","Lean back slightly so your torso is at about forty-five degrees, core braced.","Clasp your hands (or hold a weight) in front of your chest.","Rotate your torso to the right, then to the left — that is one repetition.","Keep the movement controlled and your chest up throughout.","Repeat for the desired number of repetitions."]
+  },
+  "leg raises": {
+    id: "c019",
+    name: "Lying Leg Raise",
+    target: "Lower Abs",
+    equipment: "Body Weight",
+    steps: ["Lie flat on your back with your legs straight and hands under your hips for support.","Press your lower back into the floor and brace your core.","Raise your legs together until they point at the ceiling.","Lower them slowly until they hover just above the floor without arching your back.","Repeat for the desired number of repetitions."]
+  },
+  "mountain climbers": {
+    id: "c020",
+    name: "Mountain Climber",
+    target: "Core & Cardio",
+    equipment: "Body Weight",
+    steps: ["Start in a high plank with your hands under your shoulders.","Keep your core tight and your back flat.","Drive your right knee towards your chest, then quickly switch legs.","Continue alternating legs at a running pace while keeping your hips level.","Continue for the target time."]
+  },
+  "burpees": {
+    id: "1160",
+    name: "Burpee",
+    target: "Full Body",
+    equipment: "Body Weight",
+    steps: ["Start standing with your feet shoulder-width apart.","Squat down and place your hands on the floor in front of you.","Kick your feet back into a push-up position and perform one push-up.","Jump your feet back towards your hands.","Explode up into a jump, reaching your arms overhead.","Land softly and go straight into the next repetition."]
+  },
+  "jumping jacks": {
+    id: "c021",
+    name: "Jumping Jack",
+    target: "Full Body",
+    equipment: "Body Weight",
+    steps: ["Stand upright with your feet together and arms at your sides.","Jump your feet out wide while swinging your arms overhead.","Jump back to the starting position, bringing your arms down.","Keep a steady rhythm and land softly on the balls of your feet.","Continue for the target time."]
+  },
+  "jump rope": {
+    id: "c022",
+    name: "Jump Rope",
+    target: "Cardiovascular System",
+    equipment: "Jump Rope",
+    steps: ["Hold the rope handles at hip height with the rope behind your heels.","Swing the rope overhead using your wrists, not your arms.","Jump just high enough for the rope to pass under your feet, landing softly on the balls of your feet.","Keep your elbows close to your sides and your gaze forward.","Continue at a steady rhythm for the target time."]
+  },
 };
 
 export function findExerciseInfo(name?: string): ExerciseInfo | undefined {

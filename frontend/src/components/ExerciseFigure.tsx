@@ -71,11 +71,13 @@ export function archetypeFor(name?: string): Archetype {
   const n = (name ?? '').toLowerCase();
   const has = (...k: string[]) => k.some((s) => n.includes(s));
   if (has('plank')) return 'plank';
-  if (has('crunch', 'sit-up', 'sit up', 'situp')) return 'crunch';
-  if (has('push', 'bench', 'fly', 'dip', 'decline', 'pike')) return 'pushup';
+  if (has('crunch', 'sit-up', 'sit up', 'situp', 'twist', 'leg raise', 'bridge')) return 'crunch';
+  if (has('rear delt', 'rear fly')) return 'raise';
+  if (has('mountain climber')) return 'run';
+  if (has('push', 'bench', 'fly', 'dip', 'decline', 'incline', 'pike')) return 'pushup';
   if (has('curl')) return 'curl';
   if (has('row', 'pulldown', 'pull-up', 'pullup', 'pull up', 'lat ')) return 'row';
-  if (has('squat', 'lunge', 'leg press', 'wall sit', 'calf')) return 'squat';
+  if (has('squat', 'lunge', 'leg press', 'wall sit', 'calf', 'deadlift', 'rdl', 'step up')) return 'squat';
   if (has('lateral', 'raise')) return 'raise';
   if (has('shoulder', 'press', 'overhead')) return 'press';
   if (has('burpee', 'hiit', 'jump')) return 'jump';
