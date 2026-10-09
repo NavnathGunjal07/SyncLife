@@ -10,6 +10,7 @@
 import {
   fetchAlarms,
   fetchGoals,
+  fetchMe,
   fetchGoldEntries,
   fetchMealLogs,
   fetchTransactions,
@@ -72,6 +73,15 @@ async function run() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+
+  // Confirm the session is still valid server-side. A 401 signs out via the
+  // unauthorized handler; offline errors keep the cached session.
+  try {
+    const { user } = await fetchMe(token);
+    useAuthStore.getState().setSession(user, token);
+  } catch {
+    if (!useAuthStore.getState().accessToken) return;
+  }
 
   // Profile (does not overwrite a user mid-edit since this runs once on launch).
   try {

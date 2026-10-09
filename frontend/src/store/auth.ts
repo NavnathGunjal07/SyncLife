@@ -2,10 +2,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { postGoals } from '../services/api';
+import * as Notifications from 'expo-notifications';
+import Toast from 'react-native-toast-message';
+
+import { deleteAccount, postGoals, setUnauthorizedHandler } from '../services/api';
 import { clearProgressNotification } from '../services/notifications';
 import { AuthUser, UserProfile } from '../types';
 import { waterGoalForWeight } from '../utils/calculators';
+
+/** Reads the `exp` claim (seconds) from a JWT without verifying it — the server does that. */
+function tokenExpiresAt(token: string): number | null {
+  try {
+    const payload = token.split('.')[1] ?? '';
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '='));
+    const { exp } = JSON.parse(json) as { exp?: number };
+    return typeof exp === 'number' ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  const expiresAt = tokenExpiresAt(token);
+  return expiresAt !== null && expiresAt <= Date.now();
+}
 
 const defaultProfile: UserProfile = {
   weightKg: 70,
@@ -28,6 +49,10 @@ type AuthState = {
   onboardingComplete: boolean;
   profile: UserProfile;
   streak: number;
+  /** LEGAL_VERSION of the Terms/Privacy Policy this user accepted (null = never). */
+  acceptedLegalVersion: string | null;
+  /** Saw the permissions disclosure screen (allowed or skipped each one). */
+  permissionsReviewed: boolean;
   _setHydrated: () => void;
   setSession: (user: AuthUser, token: string) => void;
   markOnboardingComplete: () => void;
@@ -37,7 +62,11 @@ type AuthState = {
   incrementStreak: () => void;
   setStreak: (streak: number) => void;
   isTokenValid: () => boolean;
+  acceptLegal: (version: string) => void;
+  markPermissionsReviewed: () => void;
   logout: () => Promise<void>;
+  /** Deletes the account server-side, then wipes everything stored on the device. */
+  deleteAccount: (password: string) => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -49,6 +78,8 @@ export const useAuthStore = create<AuthState>()(
       onboardingComplete: false,
       profile: defaultProfile,
       streak: 0,
+      acceptedLegalVersion: null,
+      permissionsReviewed: false,
 
       _setHydrated: () => set({ _hydrated: true }),
 
@@ -56,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
 
       markOnboardingComplete: () => set({ onboardingComplete: true }),
 
-      isTokenValid: () => Boolean(get().accessToken),
+      isTokenValid: () => !isTokenExpired(get().accessToken),
 
       updateProfile: async (patch) => {
         const next = { ...get().profile, ...patch };
@@ -84,9 +115,32 @@ export const useAuthStore = create<AuthState>()(
 
       setStreak: (streak) => set({ streak }),
 
+      acceptLegal: (version) => set({ acceptedLegalVersion: version }),
+
+      markPermissionsReviewed: () => set({ permissionsReviewed: true }),
+
       logout: async () => {
-        set({ user: null, accessToken: null, streak: 0 });
+        // Acceptance is per person, so the next account on this device accepts for itself.
+        set({ user: null, accessToken: null, streak: 0, acceptedLegalVersion: null });
         await clearProgressNotification();
+      },
+
+      deleteAccount: async (password) => {
+        const { accessToken } = get();
+        if (!accessToken) throw new Error('You are not signed in.');
+        await deleteAccount(accessToken, password);
+        await clearProgressNotification();
+        await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
+        await AsyncStorage.clear();
+        set({
+          user: null,
+          accessToken: null,
+          onboardingComplete: false,
+          profile: defaultProfile,
+          streak: 0,
+          acceptedLegalVersion: null,
+          permissionsReviewed: false
+        });
       }
     }),
     {
@@ -103,8 +157,26 @@ export const useAuthStore = create<AuthState>()(
         };
       },
       onRehydrateStorage: () => (state) => {
+        // A token that expired while the app was closed goes straight to sign-in
+        // instead of mounting the app and failing every request.
+        if (state?.accessToken && isTokenExpired(state.accessToken)) {
+          void state.logout();
+        }
         state?._setHydrated();
       }
     }
   )
 );
+
+// Any authenticated request that comes back 401 (expired/revoked token, deleted
+// account) signs the user out once; RootNavigator then swaps to the Auth stack.
+let signingOut = false;
+setUnauthorizedHandler(() => {
+  const { accessToken, logout } = useAuthStore.getState();
+  if (!accessToken || signingOut) return;
+  signingOut = true;
+  Toast.show({ type: 'info', text1: 'Session expired', text2: 'Please sign in again.' });
+  void logout().finally(() => {
+    signingOut = false;
+  });
+});

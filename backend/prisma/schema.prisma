@@ -31,6 +31,7 @@ model User {
   chatMessages ChatMessage[]
   memories     ChatMemory[]
   habits       Habit[]
+  reports      ContentReport[]
 }
 
 // A tracked habit shown as one ring in the radial monthly tracker.
@@ -257,4 +258,58 @@ model ChatMemory {
 
   @@unique([userId, content])
   @@index([userId, status])
+}
+
+// A user's report of an AI coach response they found offensive or harmful
+// (required by Google Play's generative-AI policy). Deleted with the account.
+model ContentReport {
+  id        String   @id @default(cuid())
+  userId    String
+  messageId String?
+  content   String
+  reason    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+// One row per DELETED account: coarse, non-identifying usage aggregates kept for
+// product analytics after the account and all its data are erased. Deliberately
+// has NO user id, username, name, free text, money amounts, exact dates or exact
+// body measurements — only counts, buckets and month-level dates, so it can't be
+// linked back to a person.
+model AnonymousUsageStat {
+  id                   String   @id @default(cuid())
+  signupMonth          String   // YYYY-MM
+  deletedMonth         String   // YYYY-MM
+  activeDays           Int      // distinct days with any log
+  // Preferences (enumerated values only).
+  fitnessGoal          String
+  dietaryPreference    String
+  workoutMode          String
+  workoutLevel         String
+  fastingPlan          String
+  bmiBucket            String   // underweight | normal | overweight | obese | unknown
+  setupComplete        Boolean
+  // Feature usage counts.
+  mealLogs             Int
+  workoutLogs          Int
+  workoutsCompleted    Int
+  workoutMinutes       Int
+  waterLogs            Int
+  transactions         Int
+  goldEntries          Int
+  habits               Int
+  habitCompletions     Int
+  coachMessagesSent    Int
+  coachMemories        Int
+  coachAlarms          Int
+  maxStreak            Int
+  avgCompletionPercent Float?
+  createdAt            DateTime @default(now())
+
+  @@index([deletedMonth])
 }

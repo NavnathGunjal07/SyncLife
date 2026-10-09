@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +14,9 @@ import {
 import Toast from 'react-native-toast-message';
 
 import { AppButton } from '../components/AppButton';
+import { PasswordInput } from '../components/PasswordInput';
+import { BrandLogo } from '../components/BrandLogo';
+import { FadeInView } from '../components/FadeInView';
 import { QuoteCard } from '../components/QuoteCard';
 import { colors } from '../constants/theme';
 import { useRotatingQuote } from '../hooks/useRotatingQuote';
@@ -24,6 +27,8 @@ type AuthStackParamList = {
   Onboarding: undefined;
   SignIn: undefined;
   Register: undefined;
+  // Root-stack screen; navigate() bubbles up to it.
+  Legal: { kind: 'terms' | 'privacy' };
 };
 type NavProp = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -33,6 +38,7 @@ export function SignInScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
   const { quote, gradient: quoteGradient } = useRotatingQuote();
 
   const handleLogin = async () => {
@@ -61,9 +67,9 @@ export function SignInScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>SL</Text>
-        </View>
+        <FadeInView>
+          <BrandLogo size={60} animated />
+        </FadeInView>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.body}>Sign in to continue tracking your meals, workouts, and finances.</Text>
 
@@ -79,16 +85,20 @@ export function SignInScreen() {
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
+            autoComplete="username"
+            textContentType="username"
             returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
           <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
+          <PasswordInput
+            ref={passwordRef}
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
+            autoComplete="password"
+            textContentType="password"
             returnKeyType="done"
             onSubmitEditing={() => void handleLogin()}
           />
@@ -107,6 +117,15 @@ export function SignInScreen() {
             <Text style={styles.link}>Create one</Text>
           </TouchableOpacity>
         </View>
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => navigation.navigate('Legal', { kind: 'terms' })}>
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerText}>·</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Legal', { kind: 'privacy' })}>
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -120,16 +139,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 28
   },
-  logo: {
-    alignSelf: 'flex-start',
-    alignItems: 'center',
-    backgroundColor: colors.accent,
-    borderRadius: 20,
-    height: 56,
-    justifyContent: 'center',
-    width: 56
-  },
-  logoText: { color: colors.background, fontSize: 20, fontWeight: '900' },
   title: { color: colors.text, fontSize: 34, fontWeight: '900' },
   body: { color: colors.textMuted, fontSize: 16, lineHeight: 24 },
   form: { gap: 8 },
@@ -137,7 +146,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     color: colors.text,
     fontSize: 16,
@@ -145,5 +154,6 @@ const styles = StyleSheet.create({
   },
   footer: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center' },
   footerText: { color: colors.textMuted, fontSize: 14 },
+  legalLink: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
   link: { color: colors.accent, fontSize: 14, fontWeight: '700' }
 });

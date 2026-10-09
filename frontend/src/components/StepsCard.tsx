@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 import { colors, tints } from '../constants/theme';
@@ -12,6 +12,12 @@ export function StepsCard() {
   const progress = goal > 0 ? Math.min(100, (steps / goal) * 100) : 0;
   const km = (steps * 0.000762).toFixed(2);
   const kcal = Math.round(steps * 0.04);
+
+  const enableSteps = async () => {
+    await init(true);
+    // Android stops showing the prompt after repeated denials — send them to Settings.
+    if (useStepsStore.getState().permission === 'denied') void Linking.openSettings();
+  };
 
   const connectWatch = () => {
     Toast.show({
@@ -45,9 +51,13 @@ export function StepsCard() {
           <ProgressBar value={progress} color={tints.workout} />
           <Text style={styles.sub}>{km} km · ~{kcal} kcal · counts while the app is open</Text>
         </>
-      ) : permission === 'denied' ? (
-        <Pressable onPress={() => void init()}>
-          <Text style={styles.sub}>Allow the activity/physical-activity permission to count steps. Tap to retry.</Text>
+      ) : available ? (
+        <Pressable onPress={() => void enableSteps()}>
+          <Text style={styles.sub}>
+            SyncLife can count your steps using your phone's motion sensor (the "Physical activity" permission). Steps
+            stay on this device and are only counted while the app is open.
+          </Text>
+          <Text style={styles.enable}>{permission === 'denied' ? 'Open settings to allow' : 'Tap to enable step counting'}</Text>
         </Pressable>
       ) : (
         <Text style={styles.sub}>Step tracking isn't available on this device.</Text>
@@ -57,6 +67,7 @@ export function StepsCard() {
 }
 
 const styles = StyleSheet.create({
+  enable: { color: colors.accent, fontSize: 14, fontWeight: '800', marginTop: 8 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   left: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   badge: { alignItems: 'center', borderRadius: 10, height: 30, justifyContent: 'center', width: 30 },

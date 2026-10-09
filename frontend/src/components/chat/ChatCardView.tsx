@@ -8,7 +8,7 @@ import { ChatCard } from '../../types';
 import { inr } from '../../utils/formatters';
 import { AppButton } from '../AppButton';
 import { Card } from '../Card';
-import { ExerciseAnimation, archetypeFor } from '../ExerciseFigure';
+import { WorkoutAnimation } from '../workoutAnim/WorkoutAnimation';
 
 type Props = {
   card: ChatCard;
@@ -90,7 +90,7 @@ export function ChatCardView({ card, onShowExercise, onMarkComplete, onConfirmMe
           <Text style={styles.exerciseName}>{info?.name ?? card.name}</Text>
           {card.detail ? <Text style={styles.sub}>{card.detail}</Text> : null}
           <View style={styles.gifFallback}>
-            <ExerciseAnimation kind={archetypeFor(card.name)} size={130} color={colors.accent} />
+            <WorkoutAnimation name={card.name} size={150} />
           </View>
           <View style={styles.actions}>
             <AppButton label="How to" icon="information-circle" variant="outline" style={styles.flex} onPress={() => onShowExercise(card.name, card.detail)} />

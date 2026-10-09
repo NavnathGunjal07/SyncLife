@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
-import { colors } from '../constants/theme';
+import { colors, gradients } from '../constants/theme';
+import { GradientFill } from './GradientFill';
 import { clamp } from '../utils/formatters';
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
@@ -24,7 +25,10 @@ export function ProgressBar({ value, color }: { value: number; color?: string })
 
   return (
     <View style={styles.track}>
-      <Animated.View style={[styles.fill, { width }, color ? { backgroundColor: color } : null]} />
+      <Animated.View style={[styles.fill, { width }]}>
+        {/* A fading tail of the tint (or the brand gradient) reads livelier than a flat bar. */}
+        <GradientFill colors={color ? [color + '80', color] : gradients.brand} radius={999} direction="horizontal" />
+      </Animated.View>
     </View>
   );
 }
@@ -37,8 +41,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   fill: {
-    backgroundColor: colors.accent,
     borderRadius: 999,
-    height: '100%'
+    height: '100%',
+    overflow: 'hidden'
   }
 });

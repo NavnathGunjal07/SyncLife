@@ -13,7 +13,7 @@ import { toISODate } from '../utils/date';
 import { useAuthStore } from './auth';
 
 // Random colour + icon assigned to a new habit.
-const HABIT_COLORS = ['#38BDF8', '#A78BFA', '#22C55E', '#FB7185', '#F59E0B', '#2DD4BF', '#F472B6', '#FBBF24', '#60A5FA', '#34D399'];
+const HABIT_COLORS = ['#FF7A1A', '#3DD9FF', '#8B6CFF', '#FFB81F', '#FF4D4D', '#2DD4BF', '#FFD60A', '#60A5FA', '#FF8A3D', '#B57CFF'];
 const HABIT_ICONS = ['star', 'flame', 'book', 'water', 'barbell', 'walk', 'moon', 'leaf', 'heart', 'musical-notes', 'brush', 'cash'];
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)] as T;
 

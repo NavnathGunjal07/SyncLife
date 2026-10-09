@@ -14,7 +14,7 @@ export const COACH_LANGUAGES: { id: CoachLanguage; label: string }[] = [
   { id: 'mr', label: 'मराठी' }
 ];
 
-/** BCP-47 locales used for both text-to-speech and speech recognition. */
+/** BCP-47 locales used for the coach's text-to-speech voice. */
 export const SPEECH_LOCALES: Record<CoachLanguage, string> = {
   en: 'en-IN',
   hi: 'hi-IN',
@@ -22,8 +22,8 @@ export const SPEECH_LOCALES: Record<CoachLanguage, string> = {
 };
 
 // ─── Ringtones ────────────────────────────────────────────────────────────────
-// The bundled WAVs do double duty: expo-audio loops them in-app on the ringing
-// call screen, and the Android notification channels reference them by filename.
+// The bundled WAVs are the Android notification-channel sounds that ring a coach
+// call; channels reference them by filename (see app.json expo-notifications sounds).
 
 export const DEFAULT_RINGTONE: Ringtone = 'classic';
 
@@ -32,13 +32,6 @@ export const RINGTONES: { id: Ringtone; label: string; file: string }[] = [
   { id: 'gentle', label: 'Gentle chime', file: 'alarm_gentle.wav' },
   { id: 'digital', label: 'Digital', file: 'alarm_digital.wav' }
 ];
-
-/** Static require() map so Metro bundles each ringtone (dynamic require fails). */
-export const RINGTONE_SOURCES: Record<Ringtone, number> = {
-  classic: require('../../assets/sounds/alarm_classic.wav'),
-  gentle: require('../../assets/sounds/alarm_gentle.wav'),
-  digital: require('../../assets/sounds/alarm_digital.wav')
-};
 
 export function ringtoneFile(ringtone: Ringtone): string {
   return RINGTONES.find((r) => r.id === ringtone)?.file ?? 'alarm_classic.wav';

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 
-import { getTodaySteps, isStepTrackingAvailable, requestStepPermission, watchSteps } from '../services/pedometer';
+import { getTodaySteps, hasStepPermission, isStepTrackingAvailable, requestStepPermission, watchSteps } from '../services/pedometer';
 import { toISODate } from '../utils/date';
 
 const KEY = 'synclife_steps';
@@ -18,7 +18,12 @@ type StepsState = {
   _base: number; // daily total accumulated before the current watch session
   _date: string;
   _stop: (() => void) | null;
-  init: () => Promise<void>;
+  /**
+   * Starts tracking if the activity permission is granted. Only shows the system
+   * prompt when `prompt` is true — i.e. from a user tap after our in-app
+   * disclosure (Play's prominent-disclosure rule), never on app start.
+   */
+  init: (prompt?: boolean) => Promise<void>;
   stop: () => void;
 };
 
@@ -32,15 +37,25 @@ export const useStepsStore = create<StepsState>((set, get) => ({
   _date: toISODate(),
   _stop: null,
 
-  init: async () => {
+  init: async (prompt = false) => {
     if (get().tracking) return;
     const available = await isStepTrackingAvailable();
     set({ available });
     if (!available) return;
 
-    const granted = await requestStepPermission();
-    set({ permission: granted ? 'granted' : 'denied' });
-    if (!granted) return;
+    if (prompt) {
+      const granted = await requestStepPermission();
+      set({ permission: granted ? 'granted' : 'denied' });
+      if (!granted) return;
+    } else {
+      const granted = await hasStepPermission();
+      if (!granted) {
+        // Leave a previous 'denied' in place; otherwise it's simply not asked yet.
+        if (get().permission !== 'denied') set({ permission: 'unknown' });
+        return;
+      }
+      set({ permission: 'granted' });
+    }
 
     const today = toISODate();
     let base = 0;

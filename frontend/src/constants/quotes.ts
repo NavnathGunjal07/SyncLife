@@ -10,18 +10,16 @@ export interface Quote {
 // ─── Gradient palettes (used as SVG backgrounds for quote cards) ──────────────
 // [start, end] color pairs that read well with white text on the dark theme.
 export const QUOTE_GRADIENTS: [string, string][] = [
-  ['#166534', '#22C55E'],
-  ['#0F766E', '#2DD4BF'],
-  ['#1E3A8A', '#3B82F6'],
-  ['#5B21B6', '#A78BFA'],
-  ['#9D174D', '#FB7185'],
-  ['#9A3412', '#F59E0B'],
-  ['#0C4A6E', '#38BDF8'],
-  ['#3F2D1B', '#FBBF24'],
-  ['#134E4A', '#34D399'],
-  ['#312E81', '#818CF8'],
-  ['#7C2D12', '#FB923C'],
-  ['#1F2937', '#22C55E']
+  ['#FF451A', '#FFB81F'],
+  ['#C2410C', '#FF7A1A'],
+  ['#4C1D95', '#8B6CFF'],
+  ['#1E3A8A', '#3DD9FF'],
+  ['#7C2D12', '#FFB020'],
+  ['#312E81', '#6D5BFF'],
+  ['#0C4A6E', '#3DD9FF'],
+  ['#3F2D1B', '#FFD60A'],
+  ['#9A3412', '#FF8A3D'],
+  ['#1F1B2E', '#FF7A1A']
 ];
 
 // ─── Consistency / discipline / fitness motivation ───────────────────────────

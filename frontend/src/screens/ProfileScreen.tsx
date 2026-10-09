@@ -7,6 +7,7 @@ import Toast from 'react-native-toast-message';
 import { AppButton } from '../components/AppButton';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { LegalPrivacyCard } from '../components/LegalPrivacyCard';
 import { MotivationAlarmsCard } from '../components/MotivationAlarmsCard';
 import { QuoteCard } from '../components/QuoteCard';
 import { SavedMemoriesCard } from '../components/SavedMemoriesCard';
@@ -132,6 +133,8 @@ export function ProfileScreen() {
       <MotivationAlarmsCard />
 
       <SavedMemoriesCard />
+
+      <LegalPrivacyCard />
 
       <AppButton label="Sync now" icon="sync" onPress={() => void sync()} />
       <AppButton

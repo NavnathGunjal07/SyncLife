@@ -6,6 +6,8 @@ import { videoIdFor, youtubeSearchUrl } from '../constants/exerciseVideos';
 import { colors } from '../constants/theme';
 import { AppBottomSheet } from './AppBottomSheet';
 import { ExerciseVideo } from './ExerciseVideo';
+import { MuscleMap } from './MuscleMap';
+import { WorkoutAnimation } from './workoutAnim/WorkoutAnimation';
 
 type Props = {
   visible: boolean;
@@ -26,6 +28,12 @@ export function ExerciseDetailSheet({ visible, onClose, displayName, detail }: P
         <Text style={styles.detail}>{detail}</Text>
       </View>
 
+      <View style={styles.demo}>
+        <WorkoutAnimation name={displayName} size={250} />
+        <Text style={styles.demoHint}>Targeted muscles in red · supporting in pink</Text>
+      </View>
+
+      <Text style={styles.videoTitle}>Video tutorial</Text>
       <ExerciseVideo videoId={videoIdFor(displayName)} />
       <Pressable
         style={styles.ytLink}
@@ -35,6 +43,11 @@ export function ExerciseDetailSheet({ visible, onClose, displayName, detail }: P
         <Ionicons name="logo-youtube" size={16} color={colors.danger} />
         <Text style={styles.ytLinkText}>More “{displayName}” videos on YouTube</Text>
       </Pressable>
+
+      <View style={styles.muscles}>
+        <Text style={styles.stepsTitle}>Muscles worked</Text>
+        <MuscleMap name={displayName} />
+      </View>
 
       {info ? (
         <>
@@ -75,6 +88,9 @@ const styles = StyleSheet.create({
   header: { marginBottom: 14 },
   title: { color: colors.text, fontSize: 22, fontWeight: '900' },
   detail: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
+  demo: { alignItems: 'center', backgroundColor: colors.surfaceAlt, borderRadius: 16, marginBottom: 18, paddingBottom: 12 },
+  demoHint: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  videoTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 10 },
   ytLink: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 10 },
   ytLinkText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
@@ -88,6 +104,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7
   },
   tagText: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  muscles: { gap: 10, marginTop: 18 },
   steps: { gap: 12, marginTop: 20 },
   stepsTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   stepRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },

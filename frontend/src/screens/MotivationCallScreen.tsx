@@ -24,13 +24,8 @@ import {
   CallTurn,
   getMotivationMessage,
   getMotivationReply,
-  isVoiceInputAvailable,
   MotivationMessage,
   speakMessage,
-  startListening,
-  startRinging,
-  stopListening,
-  stopRinging,
   stopSpeaking
 } from '../services/motivation';
 import { useAuthStore } from '../store/auth';
@@ -46,7 +41,6 @@ export function MotivationCallScreen({ navigation, route }: Props) {
   const alarmType: MotivationType = route.params?.alarmType ?? 'gym';
   const notificationId = route.params?.notificationId;
   const meta = MOTIVATION_META[alarmType];
-  const ringtone = useMotivationStore((state) => state.ringtone);
   const language = useMotivationStore((state) => state.language);
   const [callState, setCallState] = useState<CallState>('ringing');
   const [turns, setTurns] = useState<CallTurn[]>([]);
@@ -54,14 +48,11 @@ export function MotivationCallScreen({ navigation, route }: Props) {
   const [speaking, setSpeaking] = useState(false);
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState('');
-  const [listening, setListening] = useState(false);
-  const [voiceNote, setVoiceNote] = useState('');
   const pulse = useRef(new Animated.Value(1)).current;
   const quote = useRef(getRandomQuote()).current;
   const scrollRef = useRef<ScrollView>(null);
   // Ref mirror of `turns` so async voice callbacks always send the latest history.
   const turnsRef = useRef<CallTurn[]>([]);
-  const voiceSupported = useRef(isVoiceInputAvailable()).current;
   // The coach's opening line, prefetched while the phone is still ringing so
   // answering connects instantly instead of sitting on a loading screen.
   const openerPromise = useRef<Promise<MotivationMessage> | null>(null);
@@ -89,10 +80,10 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   }, [turns]);
 
-  // Ring: play the looping ringtone + vibrate + pulse the avatar until answered.
+  // Ring: vibrate + pulse the avatar until answered. The audible ring comes from
+  // the call notification's channel sound (the chosen ringtone).
   useEffect(() => {
     if (callState !== 'ringing') return;
-    void startRinging(ringtone);
     Vibration.vibrate([800, 1200], true);
     const loop = Animated.loop(
       Animated.sequence([
@@ -102,26 +93,21 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     );
     loop.start();
     return () => {
-      stopRinging();
       Vibration.cancel();
       loop.stop();
     };
-  }, [callState, pulse, ringtone]);
+  }, [callState, pulse]);
 
   useEffect(
     () => () => {
-      stopRinging();
       stopSpeaking();
-      stopListening();
     },
     []
   );
 
   const endCall = () => {
     Vibration.cancel();
-    stopRinging();
     stopSpeaking();
-    stopListening();
     if (notificationId) {
       void Notifications.dismissNotificationAsync(notificationId).catch(() => undefined);
     }
@@ -173,7 +159,6 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     stopSpeaking();
     setSpeaking(false);
     setDraft('');
-    setVoiceNote('');
 
     const history: CallTurn[] = [...turnsRef.current, { role: 'user', content: trimmed }];
     setTurns(history);
@@ -194,37 +179,7 @@ export function MotivationCallScreen({ navigation, route }: Props) {
     speakMessage(result.message, () => setSpeaking(false), language);
   };
 
-  const toggleMic = async () => {
-    if (listening) {
-      stopListening();
-      return;
-    }
-    stopSpeaking();
-    setSpeaking(false);
-    setVoiceNote('Listening…');
-    setListening(true);
-    const ok = await startListening(
-      {
-        onPartial: (t) => setDraft(t),
-        onResult: (t) => {
-          setListening(false);
-          setVoiceNote('');
-          void sendTurn(t);
-        },
-        onEnd: () => setListening(false),
-        onError: (message) => {
-          setListening(false);
-          setVoiceNote(message);
-        }
-      },
-      language
-    );
-    if (!ok) setListening(false);
-  };
-
-  const statusLine = listening
-    ? '🎙️ Listening…'
-    : speaking
+  const statusLine = speaking
       ? '🔊 Coach is speaking…'
       : replying
         ? 'Coach is thinking…'
@@ -277,13 +232,12 @@ export function MotivationCallScreen({ navigation, route }: Props) {
 
       {callState === 'active' && (
         <View style={styles.composer}>
-          {!!voiceNote && <Text style={styles.voiceNote}>{voiceNote}</Text>}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
               value={draft}
               onChangeText={setDraft}
-              placeholder={voiceSupported ? 'Reply or tap the mic…' : 'Reply to your coach…'}
+              placeholder="Reply to your coach…"
               placeholderTextColor={colors.textMuted}
               multiline
               editable={!replying}
@@ -291,15 +245,6 @@ export function MotivationCallScreen({ navigation, route }: Props) {
               returnKeyType="send"
               blurOnSubmit
             />
-            {voiceSupported && (
-              <Pressable
-                style={[styles.iconButton, listening && styles.iconButtonActive]}
-                onPress={() => void toggleMic()}
-                hitSlop={8}
-              >
-                <Ionicons name={listening ? 'stop' : 'mic'} size={22} color={listening ? colors.background : colors.text} />
-              </Pressable>
-            )}
             <Pressable
               style={[styles.iconButton, styles.sendButton, (!draft.trim() || replying) && styles.iconButtonDisabled]}
               onPress={() => void sendTurn(draft)}
@@ -401,7 +346,6 @@ const styles = StyleSheet.create({
   quoteText: { color: colors.accent, fontSize: 15, fontStyle: 'italic', lineHeight: 22, textAlign: 'center' },
   quoteAuthor: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   composer: { gap: 6, paddingHorizontal: 16, paddingTop: 6 },
-  voiceNote: { color: colors.accent, fontSize: 12, paddingLeft: 6 },
   inputRow: { alignItems: 'flex-end', flexDirection: 'row', gap: 8 },
   input: {
     backgroundColor: colors.surfaceAlt,
@@ -423,7 +367,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44
   },
-  iconButtonActive: { backgroundColor: colors.danger },
   iconButtonDisabled: { opacity: 0.4 },
   sendButton: { backgroundColor: colors.accent },
   actions: { flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 18 },

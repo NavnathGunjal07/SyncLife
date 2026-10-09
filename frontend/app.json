@@ -12,7 +12,7 @@
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
-      "backgroundColor": "#0A0A0A",
+      "backgroundColor": "#0F0D12",
       "resizeMode": "contain"
     },
     "assetBundlePatterns": [
@@ -23,20 +23,29 @@
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "backgroundImage": "./assets/adaptive-icon-bg.png",
+        "backgroundColor": "#FF6A1F"
       },
       "permissions": [
         "POST_NOTIFICATIONS",
         "VIBRATE",
         "SCHEDULE_EXACT_ALARM",
-        "USE_FULL_SCREEN_INTENT",
-        "RECORD_AUDIO",
         "ACTIVITY_RECOGNITION",
-        "HIGH_SAMPLING_RATE_SENSORS",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_HEALTH",
         "WAKE_LOCK",
         "RECEIVE_BOOT_COMPLETED"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_HEALTH",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
@@ -50,15 +59,7 @@
           ]
         }
       ],
-      "expo-audio",
-      "expo-background-task",
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "SyncLife uses the microphone so you can talk back to your AI coach on a call.",
-          "speechRecognitionPermission": "SyncLife uses speech recognition to understand your replies during coach calls."
-        }
-      ]
+      "expo-background-task"
     ],
     "owner": "sidharth_gunjal",
     "extra": {

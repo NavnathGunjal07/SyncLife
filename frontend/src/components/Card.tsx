@@ -1,17 +1,30 @@
-import { Pressable, StyleSheet, View, ViewProps } from 'react-native';
+import { useRef } from 'react';
+import { Animated, Pressable, StyleSheet, View, ViewProps } from 'react-native';
 
-import { colors } from '../constants/theme';
+import { colors, radius } from '../constants/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type CardProps = ViewProps & {
   onPress?: () => void;
 };
 
 export function Card({ children, style, onPress, ...props }: CardProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+
   if (onPress) {
+    const springTo = (toValue: number) =>
+      Animated.spring(scale, { toValue, speed: 40, bounciness: toValue === 1 ? 8 : 0, useNativeDriver: true }).start();
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed, style]} {...props}>
+      <AnimatedPressable
+        onPress={onPress}
+        onPressIn={() => springTo(0.97)}
+        onPressOut={() => springTo(1)}
+        style={[styles.card, style, { transform: [{ scale }] }]}
+        {...props}
+      >
         {children}
-      </Pressable>
+      </AnimatedPressable>
     );
   }
   return (
@@ -25,11 +38,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     borderWidth: 1,
     padding: 16
-  },
-  pressed: {
-    opacity: 0.78
   }
 });

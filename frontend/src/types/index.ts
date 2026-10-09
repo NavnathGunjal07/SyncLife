@@ -254,6 +254,8 @@ export type RootStackParamList = {
   Auth: undefined;
   AppTabs: undefined;
   MotivationCall: { alarmType: MotivationType; notificationId?: string };
+  Consent: undefined;
+  Legal: { kind: 'terms' | 'privacy' | 'delete-account' };
 };
 
 export type AppTabParamList = {

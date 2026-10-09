@@ -17,50 +17,76 @@ import {
 import { ChatMessage as ChatMessageType } from '../types';
 import { UserProfile } from '../types';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3001';
+export const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3001';
 
 // ─── HTTP Helpers ─────────────────────────────────────────────────────────────
 
-async function apiRequest<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+const REQUEST_TIMEOUT_MS = 20000;
+
+// Registered by the auth store (it imports this module, so it can't be imported back).
+// Called once when any authenticated request comes back 401 so the app signs out
+// instead of leaving the user stuck on a dead session.
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler;
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+  try {
+    const data = (await response.json()) as { message?: string };
+    return data.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function send(path: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_BASE}${path}`, { ...init, signal: init.signal ?? controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The server took too long to respond. Please try again.');
+    }
+    throw new Error("Can't reach SyncLife. Check your internet connection.");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function apiRequest<T>(path: string, token: string | null | undefined, init: RequestInit = {}): Promise<T> {
+  // Never send "Bearer null" — a missing token means the user isn't signed in.
+  if (!token) {
+    throw new Error('You are not signed in.');
+  }
+  const response = await send(path, {
     ...init,
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      ...(init.headers ?? {})
+      ...(init.headers ?? {}),
+      Authorization: `Bearer ${token}`
     }
   });
   if (response.status === 401) {
+    onUnauthorized?.();
     throw new Error('Session expired. Please sign in again.');
   }
   if (!response.ok) {
-    let message = `API error ${response.status}`;
-    try {
-      const data = (await response.json()) as { message?: string };
-      message = data.message ?? message;
-    } catch {
-      // ignore parse error
-    }
-    throw new Error(message);
+    throw new Error(await readErrorMessage(response, `API error ${response.status}`));
   }
   return response.json() as Promise<T>;
 }
 
-async function publicRequest<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+async function publicRequest<T>(path: string, body?: unknown): Promise<T> {
+  const response = await send(
+    path,
+    body === undefined
+      ? { method: 'GET' }
+      : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    try {
-      const data = (await response.json()) as { message?: string };
-      message = data.message ?? message;
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
+    throw new Error(await readErrorMessage(response, `Request failed (${response.status})`));
   }
   return response.json() as Promise<T>;
 }
@@ -78,6 +104,39 @@ export function register(username: string, password: string, name: string) {
 
 export function login(username: string, password: string) {
   return publicRequest<AuthResponse>('/api/auth/login', { username, password });
+}
+
+export function checkUsernameAvailable(username: string) {
+  return publicRequest<{ available: boolean; message?: string }>(
+    `/api/auth/username-available?username=${encodeURIComponent(username)}`
+  );
+}
+
+/** Validates the stored token server-side; a 401 here signs the user out via the unauthorized handler. */
+export function fetchMe(token: string) {
+  return apiRequest<{ user: AuthResponse['user'] }>('/api/auth/me', token);
+}
+
+/** Permanently deletes the account and all server-side data. */
+export function deleteAccount(token: string, password: string) {
+  return apiRequest<{ deleted: boolean }>('/api/auth/account', token, {
+    method: 'DELETE',
+    body: JSON.stringify({ password })
+  });
+}
+
+// ─── AI content reports ───────────────────────────────────────────────────────
+
+export type ReportReason = 'offensive' | 'harmful' | 'inaccurate' | 'other';
+
+export function reportAiMessage(
+  token: string,
+  report: { messageId?: string; content: string; reason: ReportReason; details?: string }
+) {
+  return apiRequest<{ id: string }>('/api/chat/report', token, {
+    method: 'POST',
+    body: JSON.stringify(report)
+  });
 }
 
 // ─── Meal Logs ────────────────────────────────────────────────────────────────

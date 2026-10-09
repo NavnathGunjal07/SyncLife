@@ -1,20 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/core';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
 import { ExerciseCard } from '../components/ExerciseCard';
+import { FadeInView } from '../components/FadeInView';
+import { GradientFill } from '../components/GradientFill';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ProgressBar } from '../components/ProgressBar';
 import { ProgressRing } from '../components/ProgressRing';
 import { QuoteCard } from '../components/QuoteCard';
 import { MEALS } from '../constants/meals';
-import { colors, tints } from '../constants/theme';
+import { colors, gradients, tints } from '../constants/theme';
 import { useRotatingQuote } from '../hooks/useRotatingQuote';
 import { useCalories } from '../hooks/useCalories';
 import { useWater } from '../hooks/useWater';
@@ -117,18 +119,25 @@ export function DashboardScreen() {
           />
         }
       >
-        <View style={styles.header}>
+        <FadeInView style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={styles.greeting} numberOfLines={1}>{greeting}{firstName ? `, ${firstName}` : ''}</Text>
             <Text style={styles.date}>{dateLabel}</Text>
+            <View style={styles.greetingRow}>
+              <Text style={styles.greeting} numberOfLines={1}>{greeting}{firstName ? `, ${firstName}` : ''}</Text>
+              <WavingHand />
+            </View>
           </View>
           <Pressable style={styles.avatar} onPress={() => navigateTab('Profile')}>
+            <GradientFill colors={gradients.brand} radius={24} />
             <Text style={styles.avatarText}>{initial}</Text>
           </Pressable>
-        </View>
+        </FadeInView>
 
-        <QuoteCard quote={quote} gradient={quoteGradient} label="Daily motivation" />
+        <FadeInView delay={60}>
+          <QuoteCard quote={quote} gradient={quoteGradient} label="Daily motivation" />
+        </FadeInView>
 
+        <FadeInView delay={120}>
         <Card onPress={() => navigation.navigate('Habits')}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
@@ -138,8 +147,9 @@ export function DashboardScreen() {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </View>
         </Card>
+        </FadeInView>
 
-        <View style={styles.grid}>
+        <FadeInView delay={180} style={styles.grid}>
           <Card style={styles.half} onPress={() => navigateTab('Meals')}>
             <StatHeader icon="restaurant" color={tints.calorie} label="Calories" />
             <View style={styles.ringWrap}>
@@ -170,8 +180,9 @@ export function DashboardScreen() {
             </View>
             <ProgressBar value={spendPct} color={tints.spend} />
           </Card>
-        </View>
+        </FadeInView>
 
+        <FadeInView delay={240}>
         <Card onPress={() => navigation.navigate('Finance')}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
@@ -184,13 +195,20 @@ export function DashboardScreen() {
             </View>
           </View>
         </Card>
+        </FadeInView>
 
-        <View style={styles.grid}>
-          <Card style={styles.half}>
-            <StatHeader icon="flame" color={tints.streak} label="Daily streak" />
+        <FadeInView delay={300} style={styles.grid}>
+          <Card style={[styles.half, styles.streakCard]}>
+            <GradientFill colors={gradients.ember} radius={22} />
+            <View style={styles.statHeader}>
+              <View style={[styles.iconBadge, styles.iconBadgeOnGradient]}>
+                <Ionicons name="flame" size={16} color={colors.text} />
+              </View>
+              <Text style={[styles.eyebrow, styles.onGradient]} numberOfLines={1}>Daily streak</Text>
+            </View>
             <View style={styles.statBody}>
-              <Text style={styles.metric}>{streak}<Text style={styles.unit}> {streak === 1 ? 'day' : 'days'}</Text></Text>
-              <Text style={styles.muted}>{streak > 0 ? 'Keep it going!' : 'Start your streak today'}</Text>
+              <Text style={[styles.metric, styles.streakMetric]}>{streak}<Text style={[styles.unit, styles.onGradient]}> {streak === 1 ? 'day' : 'days'}</Text></Text>
+              <Text style={[styles.muted, styles.onGradient]}>{streak > 0 ? 'on fire, keep going 🔥' : 'start your streak today'}</Text>
             </View>
           </Card>
           <Card style={styles.half}>
@@ -199,8 +217,9 @@ export function DashboardScreen() {
               <ProgressRing value={completion} size={92} label={`${completion}%`} sublabel="complete" />
             </View>
           </Card>
-        </View>
+        </FadeInView>
 
+        <FadeInView delay={360}>
         <Card onPress={() => navigateTab('Meals')}>
           <SectionHeader title="Today's meal plan" />
           <View style={styles.chips}>
@@ -209,7 +228,9 @@ export function DashboardScreen() {
             ))}
           </View>
         </Card>
+        </FadeInView>
 
+        <FadeInView delay={420}>
         <Card onPress={() => navigateTab('Workout')}>
           <SectionHeader title="Today's workout" />
           <View style={styles.stack}>
@@ -228,8 +249,29 @@ export function DashboardScreen() {
             )}
           </View>
         </Card>
+        </FadeInView>
       </ScrollView>
     </View>
+  );
+}
+
+// 👋 that waves a couple of times on mount, then rests.
+function WavingHand() {
+  const wave = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const swing = (to: number) =>
+      Animated.timing(wave, { toValue: to, duration: 140, easing: Easing.inOut(Easing.quad), useNativeDriver: true });
+    Animated.sequence([Animated.delay(400), swing(1), swing(-1), swing(1), swing(-1), swing(0)]).start();
+  }, [wave]);
+  return (
+    <Animated.Text
+      style={[
+        styles.wave,
+        { transform: [{ rotate: wave.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] }) }] }
+      ]}
+    >
+      👋
+    </Animated.Text>
   );
 }
 
@@ -272,17 +314,24 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   headerText: { flex: 1, paddingRight: 12 },
-  greeting: { color: colors.text, fontSize: 26, fontWeight: '900' },
-  date: { color: colors.textMuted, fontSize: 14, marginTop: 2 },
+  greetingRow: { alignItems: 'center', flexDirection: 'row', gap: 6, marginTop: 2 },
+  greeting: { color: colors.text, flexShrink: 1, fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
+  wave: { fontSize: 24 },
+  date: { color: colors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   avatar: {
     alignItems: 'center',
     backgroundColor: colors.accent,
     borderRadius: 24,
     height: 48,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: 48
   },
-  avatarText: { color: colors.background, fontSize: 20, fontWeight: '900' },
+  avatarText: { color: colors.onAccent, fontSize: 20, fontWeight: '900' },
+  streakCard: { borderColor: 'transparent', overflow: 'hidden' },
+  iconBadgeOnGradient: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  onGradient: { color: 'rgba(255,255,255,0.9)' },
+  streakMetric: { fontSize: 34 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   half: { flexGrow: 1, flexBasis: '47%', minHeight: 168, justifyContent: 'space-between' },
   statHeader: { alignItems: 'center', flexDirection: 'row', gap: 8 },
@@ -305,7 +354,7 @@ const styles = StyleSheet.create({
   goldValue: { marginTop: 10 },
   badge: {
     alignItems: 'center',
-    backgroundColor: colors.accentMuted,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 999,
     flexDirection: 'row',
     gap: 4,

@@ -36,3 +36,6 @@ backend/dist/
 web-build/
 builds/
 *.apk
+
+# ─── Local deploy runbook (hosts, key paths) ────────────────────────────────
+DEPLOY.local.md

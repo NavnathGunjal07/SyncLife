@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-import { colors } from '../constants/theme';
+import { colors, gradients } from '../constants/theme';
 import { clamp } from '../utils/formatters';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+let ringCounter = 0;
 
 type Props = {
   value: number;
@@ -16,7 +17,10 @@ type Props = {
   color?: string;
 };
 
-export function ProgressRing({ value, size = 112, stroke = 10, label, sublabel, color = colors.accent }: Props) {
+export function ProgressRing({ value, size = 112, stroke = 10, label, sublabel, color }: Props) {
+  const gradientId = useRef(`ringGrad${ringCounter++}`).current;
+  // No tint → brand gradient; a tint fades from a lighter tail into the full color.
+  const [from, to] = color ? [color + '66', color] : gradients.brand;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = clamp(value, 0, 100);
@@ -40,9 +44,15 @@ export function ProgressRing({ value, size = 112, stroke = 10, label, sublabel, 
   return (
     <View style={[styles.wrap, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        <Defs>
+          <LinearGradient id={gradientId} x1="0" y1="1" x2="1" y2="0">
+            <Stop offset="0" stopColor={from} />
+            <Stop offset="1" stopColor={to} />
+          </LinearGradient>
+        </Defs>
         <Circle stroke={colors.surfaceAlt} fill="none" cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke} />
         <AnimatedCircle
-          stroke={color}
+          stroke={`url(#${gradientId})`}
           fill="none"
           cx={size / 2}
           cy={size / 2}
@@ -75,7 +85,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.text,
     fontSize: 20,
-    fontWeight: '800'
+    fontWeight: '900'
   },
   sublabel: {
     color: colors.textMuted,

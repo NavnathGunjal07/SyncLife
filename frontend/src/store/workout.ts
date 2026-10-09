@@ -3,7 +3,8 @@ import { create } from 'zustand';
 import { appendWorkoutLog } from '../services/googleSheets';
 import { mergeDayLogs } from '../services/localCache';
 import { Level, WorkoutFocus, WorkoutLog, WorkoutMode } from '../types';
-import { estimateCaloriesBurned, resolveExercises } from '../utils/aiHelpers';
+import { estimateMinutes } from '../constants/workouts';
+import { estimateWorkoutCalories, resolveExercises } from '../utils/aiHelpers';
 import { getWeekDay, toISODate } from '../utils/date';
 import { useAuthStore } from './auth';
 
@@ -23,6 +24,10 @@ type WorkoutState = {
   hydrateFromProfile: (mode: WorkoutMode, level: Level) => void;
   setFocus: (focus: WorkoutFocus | null) => void;
   toggleInWorkout: (name: string) => void;
+  /** Put a just-removed exercise back at its old position (undo). */
+  restoreToWorkout: (name: string, index: number) => void;
+  /** Start the session clock (no-op if already running). */
+  startWorkout: () => void;
   toggleExercise: (name: string) => void;
   completeWorkout: () => Promise<boolean>;
   completedToday: () => boolean;
@@ -59,6 +64,17 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const next = current.includes(name) ? current.filter((n) => n !== name) : [...current, name];
     set({ selection: next, checked: checked.filter((c) => next.includes(c)) });
   },
+  restoreToWorkout: (name, index) => {
+    const { focus, selection, level } = get();
+    const current = selection ?? resolveExercises({ focus, selection: null, date: new Date(), level }).map((e) => e.name);
+    if (current.includes(name)) return;
+    const next = [...current];
+    next.splice(Math.min(index, next.length), 0, name);
+    set({ selection: next });
+  },
+  startWorkout: () => {
+    if (!get().startedAt) set({ startedAt: Date.now() });
+  },
   toggleExercise: (name) => {
     const checked = get().checked.includes(name) ? get().checked.filter((item) => item !== name) : [...get().checked, name];
     set({ checked, startedAt: get().startedAt ?? Date.now() });
@@ -71,16 +87,23 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       return false;
     }
     const profile = useAuthStore.getState().profile;
-    const startedAt = get().startedAt ?? Date.now();
-    const durationMin = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
     const plan = resolveExercises({ focus: get().focus, selection: get().selection, date: new Date(), level: get().level });
-    const exercises = get().checked.length ? get().checked : plan.map((item) => item.name);
+    const checked = get().checked;
+    const done = checked.length ? plan.filter((item) => checked.includes(item.name)) : plan;
+    const exercises = done.map((item) => item.name);
+    // Trust the clock only when it looks like a real session: ticking everything
+    // at the end (≈0 min) or leaving it open all day both fall back to / cap at
+    // the planned length.
+    const planned = Math.max(1, estimateMinutes(done));
+    const startedAt = get().startedAt;
+    const elapsed = startedAt ? Math.round((Date.now() - startedAt) / 60000) : 0;
+    const durationMin = elapsed >= 5 ? Math.min(elapsed, Math.max(planned * 2, 90)) : planned;
     const log: WorkoutLog = {
       date: toISODate(),
       day: getWeekDay(),
       exercises,
       durationMin,
-      caloriesBurned: estimateCaloriesBurned(exercises, durationMin, profile.weightKg),
+      caloriesBurned: estimateWorkoutCalories(done, durationMin, profile.weightKg),
       completed: true
     };
     const logs = [...get().logs, log];

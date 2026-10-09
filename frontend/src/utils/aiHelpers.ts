@@ -10,14 +10,28 @@ import { DayLogs, Exercise, Level, Meal, WorkoutFocus } from '../types';
 import { getWeekDay } from './date';
 import { totalWaterForDay } from './calculators';
 
+// Approximate MET (metabolic equivalent) per movement, matched by substring.
+// More specific keys come first.
 const MET_VALUES: Record<string, number> = {
+  'jump rope': 11,
   running: 9.8,
-  cycling: 7.5,
+  burpee: 8,
   hiit: 8,
+  'mountain climber': 8,
+  'jumping jack': 7.7,
+  cycling: 7.5,
+  deadlift: 6,
   squat: 5,
+  lunge: 5,
   plank: 3.3,
   stretch: 2.3,
-  default: 5.5
+  default: 5
+};
+
+const metFor = (name: string) => {
+  const lower = name.toLowerCase();
+  const key = Object.keys(MET_VALUES).find((metKey) => lower.includes(metKey));
+  return MET_VALUES[key ?? 'default'] ?? 5;
 };
 
 export function suggestMeals(caloriesRemaining: number): Meal[] {
@@ -66,11 +80,27 @@ export function estimateCaloriesBurned(exercises: string[], durationMin: number,
     return 0;
   }
 
-  const averageMet =
-    exercises.reduce((sum, name) => {
-      const key = Object.keys(MET_VALUES).find((metKey) => name.toLowerCase().includes(metKey));
-      return sum + (key ? MET_VALUES[key] ?? MET_VALUES.default ?? 5.5 : MET_VALUES.default ?? 5.5);
-    }, 0) / exercises.length;
+  const averageMet = exercises.reduce((sum, name) => sum + metFor(name), 0) / exercises.length;
 
   return Math.round(((averageMet * 3.5 * weightKg) / 200) * durationMin);
+}
+
+/**
+ * Time-weighted calorie estimate: each exercise burns at its own MET for its
+ * share of the session (timed moves by their duration, rep moves ~1.5 min per
+ * set incl. rest), scaled so the shares add up to the actual `durationMin`.
+ * A 30-min run inside a strength session no longer counts as "one of six".
+ */
+export function estimateWorkoutCalories(exercises: Exercise[], durationMin: number, weightKg: number): number {
+  if (durationMin <= 0 || exercises.length === 0 || weightKg <= 0) {
+    return 0;
+  }
+  const shares = exercises.map((ex) => (ex.durationSec ? ex.durationSec / 60 : ex.sets * 1.5));
+  const planned = shares.reduce((sum, min) => sum + min, 0) || 1;
+  const scale = durationMin / planned;
+  const kcal = exercises.reduce(
+    (sum, ex, i) => sum + ((metFor(ex.name) * 3.5 * weightKg) / 200) * (shares[i] ?? 0) * scale,
+    0
+  );
+  return Math.round(kcal);
 }

@@ -16,6 +16,16 @@ export async function isStepTrackingAvailable(): Promise<boolean> {
   }
 }
 
+/** Checks the activity permission without showing the system prompt. */
+export async function hasStepPermission(): Promise<boolean> {
+  try {
+    const { granted } = await Pedometer.getPermissionsAsync();
+    return granted;
+  } catch {
+    return false;
+  }
+}
+
 export async function requestStepPermission(): Promise<boolean> {
   try {
     const { granted } = await Pedometer.requestPermissionsAsync();

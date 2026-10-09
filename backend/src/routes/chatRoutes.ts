@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 
 import { runChatTurn, getChatSession } from '../services/chatService.js';
-import { getRecentChatMessages } from '../services/dbService.js';
+import { getRecentChatMessages, prisma } from '../services/dbService.js';
 
 const router = Router();
 
@@ -14,6 +14,13 @@ const isoDate = z
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
   date: isoDate
+});
+
+const reportSchema = z.object({
+  messageId: z.string().max(100).optional(),
+  content: z.string().min(1).max(8000),
+  reason: z.enum(['offensive', 'harmful', 'inaccurate', 'other']),
+  details: z.string().max(1000).optional()
 });
 
 function today(date?: string) {
@@ -56,6 +63,19 @@ router.get('/history', async (req: Request, res: Response, next: NextFunction) =
       createdAt: m.createdAt
     }));
     res.json({ messages });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/chat/report — flag an AI response as offensive/harmful (Google Play
+// generative-AI policy). Stored for review; also logged so it shows up in host logs.
+router.post('/report', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = reportSchema.parse(req.body);
+    const report = await prisma.contentReport.create({ data: { userId: req.userId, ...data } });
+    console.warn(`[content-report] ${report.id} reason=${data.reason} message=${data.messageId ?? '-'}`);
+    res.status(201).json({ id: report.id });
   } catch (error) {
     next(error);
   }

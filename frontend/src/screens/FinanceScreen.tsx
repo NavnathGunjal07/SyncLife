@@ -134,7 +134,7 @@ export function FinanceScreen() {
                   {expenseBreakdown.map((item, idx) => {
                     const total = expenseBreakdown.reduce((s, d) => s + d.y, 0);
                     const pct = total > 0 ? Math.round((item.y / total) * 100) : 0;
-                    const barColors = [colors.accent, '#38BDF8', '#A78BFA', '#F472B6', '#F87171', '#FACC15', colors.textMuted];
+                    const barColors = [colors.accent, '#38BDF8', '#8B6CFF', '#FFB81F', '#F87171', '#FACC15', colors.textMuted];
                     return (
                       <View key={item.x} style={styles.breakdownRow}>
                         <View style={styles.breakdownLabel}>

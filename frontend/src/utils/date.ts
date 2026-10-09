@@ -1,6 +1,11 @@
 import { WeekDay } from '../types';
 
-export const toISODate = (date = new Date()) => date.toISOString().slice(0, 10);
+// Local calendar date (YYYY-MM-DD). toISOString() is UTC, which would file
+// anything logged before 05:30 IST under the previous day.
+export const toISODate = (date = new Date()) => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
 
 export const toTime = (date = new Date()) =>
   date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });

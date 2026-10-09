@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/core';
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +19,8 @@ import { ChatCardView } from '../components/chat/ChatCardView';
 import { TypingDots } from '../components/chat/TypingDots';
 import { ExerciseDetailSheet } from '../components/ExerciseDetailSheet';
 import { colors } from '../constants/theme';
+import { reportAiMessage, ReportReason } from '../services/api';
+import { useAuthStore } from '../store/auth';
 import { useChatStore } from '../store/chat';
 import { useWorkoutStore } from '../store/workout';
 import { ChatMessage } from '../types';
@@ -55,14 +58,38 @@ export function AssistantScreen() {
   // Inverted list renders newest at the bottom.
   const data = [...messages].reverse();
 
+  // Google Play's generative-AI policy: users must be able to flag AI output in-app.
+  const reportMessage = (item: ChatMessage) => {
+    const submit = (reason: ReportReason) => {
+      const token = useAuthStore.getState().accessToken;
+      if (!token) return;
+      reportAiMessage(token, { messageId: item.id, content: item.content, reason })
+        .then(() => Toast.show({ type: 'success', text1: 'Thanks — response reported', text2: 'We review every report.' }))
+        .catch((error: unknown) =>
+          Toast.show({ type: 'error', text1: 'Report failed', text2: error instanceof Error ? error.message : 'Please try again.' })
+        );
+    };
+    // Android alerts allow at most three buttons.
+    Alert.alert('Report this AI response?', 'Tell us what was wrong with it.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Inaccurate', onPress: () => submit('inaccurate') },
+      { text: 'Offensive / harmful', style: 'destructive', onPress: () => submit('offensive') }
+    ]);
+  };
+
   const renderItem = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === 'user';
     return (
       <View style={styles.msgBlock}>
         {item.content ? (
-          <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
+          <Pressable
+            disabled={isUser}
+            onLongPress={() => reportMessage(item)}
+            accessibilityHint={isUser ? undefined : 'Long-press to report this AI response'}
+            style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}
+          >
             <Text style={[styles.bubbleText, isUser && styles.userText]}>{item.content}</Text>
-          </View>
+          </Pressable>
         ) : null}
 
         {item.cards.map((card, i) => (
@@ -101,7 +128,7 @@ export function AssistantScreen() {
         </View>
         <View style={styles.headerText}>
           <Text style={styles.title}>SyncLife Coach</Text>
-          <Text style={styles.subtitle}>Your AI health & life assistant</Text>
+          <Text style={styles.subtitle}>AI-generated · can be wrong · long-press a reply to report</Text>
         </View>
       </View>
 

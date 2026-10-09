@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 
 /**
  * Centralized error handler. Must be registered last in Express middleware chain.
@@ -12,6 +13,19 @@ export function errorHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void {
+  // Validation failures are the client's fault — return the first readable reason.
+  if (err instanceof ZodError) {
+    const issue = err.issues[0];
+    res.status(400).json({ error: 'ValidationError', message: issue?.message ?? 'Invalid request.', field: issue?.path.join('.') });
+    return;
+  }
+
+  // Prisma unique-constraint race (e.g. two sign-ups grabbing the same username at once).
+  if (typeof err === 'object' && err !== null && (err as { code?: string }).code === 'P2002') {
+    res.status(409).json({ error: 'Conflict', message: 'That value is already taken.' });
+    return;
+  }
+
   const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
   const stack = err instanceof Error ? err.stack : undefined;
 

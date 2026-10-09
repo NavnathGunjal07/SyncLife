@@ -100,9 +100,15 @@ const dailyReminders = [
   { hour: 22, minute: 0, body: "Complete today's tracking — don't break the streak!" }
 ];
 
-export async function requestNotificationPermissions() {
+/**
+ * `prompt: false` only checks — used by passive/automatic paths (progress tray,
+ * water reminders) so the system dialog appears only after the user opted in on
+ * the consent screen or from a feature they turned on themselves.
+ */
+export async function requestNotificationPermissions(prompt = true) {
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
+  if (!prompt) return false;
   const requested = await Notifications.requestPermissionsAsync();
   return requested.granted;
 }
@@ -226,7 +232,7 @@ function progressBar(percent: number): string {
  * Silent + ongoing on Android; a normal notification on iOS.
  */
 export async function showProgressNotification(s: ProgressSnapshot) {
-  const granted = await requestNotificationPermissions();
+  const granted = await requestNotificationPermissions(false);
   if (!granted) return;
   await ensureAndroidChannelsAsync();
 
@@ -243,7 +249,7 @@ export async function showProgressNotification(s: ProgressSnapshot) {
     content: {
       title: `Today ${overall}%  ${progressBar(overall)}`,
       body,
-      color: '#22C55E',
+      color: '#FF7A1A',
       // Android: keep it pinned and non-dismissable like a live status card.
       sticky: true,
       autoDismiss: false,
@@ -265,7 +271,7 @@ export async function clearProgressNotification() {
 }
 
 export async function scheduleWaterReminderNotifications(intakeMl: number, goalMl: number) {
-  const granted = await requestNotificationPermissions();
+  const granted = await requestNotificationPermissions(false);
   if (!granted || goalMl <= 0 || intakeMl >= goalMl * 0.5) return;
 
   const now = new Date();

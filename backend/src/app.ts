@@ -14,8 +14,12 @@ import alarmsRoutes from './routes/alarmsRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import memoryRoutes from './routes/memoryRoutes.js';
 import habitsRoutes from './routes/habitsRoutes.js';
+import legalRoutes from './routes/legalRoutes.js';
 
 const app = express();
+
+// Behind nginx on the VM: trust one proxy hop so req.ip is the real client (used by rate limiting).
+app.set('trust proxy', 1);
 
 // ─── Security & Parsing Middleware ────────────────────────────────────────────
 
@@ -46,6 +50,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/legal', legalRoutes);
 
 // ─── Protected Routes ─────────────────────────────────────────────────────────
 

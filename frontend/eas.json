@@ -17,12 +17,12 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://synclifebackend.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://synclifeapi.duckdns.org"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://synclifebackend.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://synclifeapi.duckdns.org"
       },
       "android": {
         "buildType": "app-bundle"

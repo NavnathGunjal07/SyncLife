@@ -3,7 +3,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
 
+import { LEGAL_VERSION } from '../constants/legal';
 import { colors } from '../constants/theme';
+import { ConsentScreen } from '../screens/ConsentScreen';
+import { LegalScreen } from '../screens/LegalScreen';
 import { MotivationCallScreen } from '../screens/MotivationCallScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { useAuthStore } from '../store/auth';
@@ -27,6 +30,12 @@ export function RootNavigator({ onReady }: Props) {
   const onboardingComplete = useAuthStore((state) => state.onboardingComplete);
   const accessToken = useAuthStore((state) => state.accessToken);
   const isAuthed = Boolean(user && onboardingComplete && accessToken);
+  // Terms must be accepted (current version) and the permission disclosures seen
+  // before the main app mounts — the app stack is what starts step tracking,
+  // notifications and background refresh.
+  const acceptedLegalVersion = useAuthStore((state) => state.acceptedLegalVersion);
+  const permissionsReviewed = useAuthStore((state) => state.permissionsReviewed);
+  const needsConsent = acceptedLegalVersion !== LEGAL_VERSION || !permissionsReviewed;
 
   // Call requested before the navigator was ready (cold start from a notification tap)
   const pendingCall = useRef<{ alarmType: MotivationType; notificationId?: string } | null>(null);
@@ -102,6 +111,8 @@ export function RootNavigator({ onReady }: Props) {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!hydrated ? (
           <Stack.Screen name="Splash" component={SplashScreen} />
+        ) : isAuthed && needsConsent ? (
+          <Stack.Screen name="Consent" component={ConsentScreen} />
         ) : isAuthed ? (
           <Stack.Group>
             <Stack.Screen name="AppTabs" component={AppNavigator} />
@@ -110,6 +121,8 @@ export function RootNavigator({ onReady }: Props) {
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         )}
+        {/* Reachable from every state: sign-up, consent and Profile all link to it. */}
+        <Stack.Screen name="Legal" component={LegalScreen} options={{ animation: 'slide_from_bottom' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

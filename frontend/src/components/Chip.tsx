@@ -1,6 +1,10 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors } from '../constants/theme';
+import { colors, gradients, radius } from '../constants/theme';
+import { GradientFill } from './GradientFill';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   label: string;
@@ -9,37 +13,43 @@ type Props = {
 };
 
 export function Chip({ label, active, onPress }: Props) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const springTo = (toValue: number) =>
+    Animated.spring(scale, { toValue, speed: 40, bounciness: toValue === 1 ? 14 : 0, useNativeDriver: true }).start();
+
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      style={({ pressed }) => [styles.chip, active && styles.active, pressed && styles.pressed]}
+      onPressIn={() => springTo(0.92)}
+      onPressOut={() => springTo(1)}
+      style={[styles.chip, active && styles.active, { transform: [{ scale }] }]}
     >
+      {active ? <GradientFill colors={gradients.brand} radius={radius.pill} direction="horizontal" /> : null}
       <Text style={[styles.label, active && styles.activeLabel]}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
+    backgroundColor: colors.surfaceAlt,
     borderColor: colors.border,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    overflow: 'hidden',
+    paddingHorizontal: 14,
     paddingVertical: 8
   },
   active: {
     backgroundColor: colors.accent,
-    borderColor: colors.accent
-  },
-  pressed: {
-    opacity: 0.7
+    borderColor: 'transparent'
   },
   label: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: '700'
   },
   activeLabel: {
-    color: colors.background
+    color: colors.onAccent
   }
 });

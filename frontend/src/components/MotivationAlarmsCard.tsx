@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { COACH_LANGUAGES, MOTIVATION_META, RINGTONES } from '../constants/motivation';
 import { colors } from '../constants/theme';
-import { previewRingtone, stopRinging } from '../services/motivation';
 import { useMotivationStore } from '../store/motivation';
 import { MotivationType } from '../types';
 import { AppButton } from './AppButton';
@@ -28,7 +27,6 @@ export function MotivationAlarmsCard() {
   const [adding, setAdding] = useState(false);
 
   // Stop any preview playback if the card unmounts mid-preview.
-  useEffect(() => () => stopRinging(), []);
 
   const add = async () => {
     const displayHour = Number(hourText);
@@ -87,17 +85,10 @@ export function MotivationAlarmsCard() {
               key={r.id}
               label={r.label}
               active={ringtone === r.id}
-              onPress={() => {
-                void setRingtone(r.id);
-                void previewRingtone(r.id);
-              }}
+              onPress={() => void setRingtone(r.id)}
             />
           ))}
         </View>
-        <Pressable style={styles.previewRow} hitSlop={6} onPress={() => void previewRingtone(ringtone)}>
-          <Ionicons name="play-circle" size={18} color={colors.accent} />
-          <Text style={styles.previewText}>Preview</Text>
-        </Pressable>
       </View>
 
       <View style={styles.ringtoneSection}>
@@ -175,8 +166,6 @@ const styles = StyleSheet.create({
   ringtoneSection: { borderTopColor: colors.border, borderTopWidth: 1, gap: 10, paddingTop: 14 },
   ringtoneHeader: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   ringtoneTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  previewRow: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 6 },
-  previewText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timeInputs: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timeInput: {

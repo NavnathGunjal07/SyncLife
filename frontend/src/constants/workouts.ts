@@ -108,3 +108,23 @@ export function scaleForLevel(item: Exercise, level: Level): Exercise {
     durationSec: item.durationSec ? Math.round(item.durationSec * multiplier) : undefined
   };
 }
+
+// Visual identity per focus — icon, accent tint and hero gradient.
+export type FocusStyle = { icon: 'barbell' | 'fitness' | 'walk' | 'body' | 'flash' | 'heart' | 'leaf'; tint: string; gradient: [string, string] };
+
+export const FOCUS_STYLE: Record<WorkoutFocus | 'Rest', FocusStyle> = {
+  Push: { icon: 'barbell', tint: '#A78BFA', gradient: ['#7C3AED', '#3B0764'] },
+  Pull: { icon: 'fitness', tint: '#60A5FA', gradient: ['#2563EB', '#172554'] },
+  Legs: { icon: 'walk', tint: '#FB923C', gradient: ['#EA580C', '#431407'] },
+  'Shoulders & Core': { icon: 'body', tint: '#FFB81F', gradient: ['#D97706', '#451A03'] },
+  'Full Body': { icon: 'flash', tint: '#FF5A36', gradient: ['#FF451A', '#3B0A02'] },
+  Cardio: { icon: 'heart', tint: '#F87171', gradient: ['#DC2626', '#450A0A'] },
+  Rest: { icon: 'leaf', tint: '#22D3EE', gradient: ['#0891B2', '#083344'] }
+};
+
+// Rough session length: timed moves count as-is, rep sets ~1.5 min each incl. rest.
+export function estimateMinutes(exercises: Exercise[]): number {
+  return Math.round(
+    exercises.reduce((sum, ex) => sum + (ex.durationSec ? ex.durationSec / 60 : ex.sets * 1.5), 0)
+  );
+}

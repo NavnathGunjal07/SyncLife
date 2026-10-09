@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 
-import { colors } from '../constants/theme';
+import { colors, gradients, radius } from '../constants/theme';
+import { GradientFill } from './GradientFill';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -19,13 +20,13 @@ type Props = {
 export function AppButton({ label, onPress, variant = 'filled', icon, style, disabled, loading }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
   const blocked = disabled || loading;
-  const contentColor = variant === 'filled' ? colors.background : colors.accent;
+  const contentColor = variant === 'filled' ? colors.onAccent : colors.accent;
 
   const pressIn = () => {
-    Animated.spring(scale, { toValue: 0.96, speed: 40, bounciness: 0, useNativeDriver: true }).start();
+    Animated.spring(scale, { toValue: 0.95, speed: 40, bounciness: 0, useNativeDriver: true }).start();
   };
   const pressOut = () => {
-    Animated.spring(scale, { toValue: 1, speed: 40, bounciness: 6, useNativeDriver: true }).start();
+    Animated.spring(scale, { toValue: 1, speed: 30, bounciness: 12, useNativeDriver: true }).start();
   };
 
   return (
@@ -38,6 +39,7 @@ export function AppButton({ label, onPress, variant = 'filled', icon, style, dis
       onPressOut={pressOut}
       style={[styles.base, styles[variant], disabled && styles.disabled, style, { transform: [{ scale }] }]}
     >
+      {variant === 'filled' ? <GradientFill colors={gradients.brand} radius={radius.md} direction="horizontal" /> : null}
       {loading ? (
         <ActivityIndicator size="small" color={contentColor} />
       ) : icon ? (
@@ -51,20 +53,22 @@ export function AppButton({ label, onPress, variant = 'filled', icon, style, dis
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
-    minHeight: 46,
-    paddingHorizontal: 16
+    minHeight: 50,
+    overflow: 'hidden',
+    paddingHorizontal: 18
   },
   filled: {
     backgroundColor: colors.accent,
-    borderColor: colors.accent
+    borderColor: 'transparent',
+    borderWidth: 0
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.accent + '14',
     borderColor: colors.accent
   },
   ghost: {
@@ -72,9 +76,10 @@ const styles = StyleSheet.create({
     borderColor: 'transparent'
   },
   label: {
-    color: colors.background,
+    color: colors.onAccent,
     fontSize: 16,
-    fontWeight: '700'
+    fontWeight: '800',
+    letterSpacing: 0.2
   },
   outlineLabel: {
     color: colors.accent
